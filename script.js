@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('action', 'getUser');
             formData.append('employee_id', loggedInEmployeeId);
             try {
-                const response = await fetch('api.php', { method: 'POST', body: formData });
+                // UPDATED: Corrected API path
+                const response = await fetch('/api/api.php', { method: 'POST', body: formData });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -94,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('employee_id', employeeId);
 
             try {
-                const response = await fetch('api.php', { method: 'POST', body: formData });
+                // UPDATED: Corrected API path
+                const response = await fetch('/api/api.php', { method: 'POST', body: formData });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -188,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const bottle = createWaterBottle();
         scene.add(bottle);
 
-        // --- Initial Spin Animation ---
         if (window.TWEEN) {
             new TWEEN.Tween(bottle.rotation)
                 .to({ y: bottle.rotation.y + Math.PI * 2 }, 1500)
@@ -196,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .start();
         }
 
-        // --- Sticker Logic ---
         if (user && user.stickers && user.stickers.length > 0) {
             if (typeof THREE.DecalGeometry === 'undefined') {
                 console.error("DecalGeometry not loaded. Make sure to include it in index.html.");
@@ -204,34 +204,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const textureLoader = new THREE.TextureLoader();
-            // UPDATED: Slightly larger decal size
             const decalSize = new THREE.Vector3(1.2, 1.2, 1.2);
 
-            // UPDATED: Adjusted y-positions to prevent cut-off
             const decalPositions = [
-                { pos: new THREE.Vector3(0, 1.0, 0.85) }, 
-                { pos: new THREE.Vector3(0.85, 0.2, 0) },
-                { pos: new THREE.Vector3(0, -0.5, -0.85) }, 
-                { pos: new THREE.Vector3(-0.85, -0.9, 0) }, // Moved up from -1.0
-                { pos: new THREE.Vector3(0.65, 0.6, 0.65) }, 
-                { pos: new THREE.Vector3(-0.65, -0.2, -0.65) },
-                { pos: new THREE.Vector3(0.75, -0.8, 0.45) }, 
-                { pos: new THREE.Vector3(-0.75, 0.8, -0.45) },
+                { pos: new THREE.Vector3(0, 1.0, 0.85) }, { pos: new THREE.Vector3(0.85, 0.2, 0) },
+                { pos: new THREE.Vector3(0, -0.5, -0.85) }, { pos: new THREE.Vector3(-0.85, -0.9, 0) },
+                { pos: new THREE.Vector3(0.65, 0.6, 0.65) }, { pos: new THREE.Vector3(-0.65, -0.2, -0.65) },
+                { pos: new THREE.Vector3(0.75, -0.8, 0.45) }, { pos: new THREE.Vector3(-0.75, 0.8, -0.45) },
             ];
 
             user.stickers.slice(0, decalPositions.length).forEach((sticker, index) => {
                 textureLoader.load(sticker.image_data, (texture) => {
-                    // UPDATED: Added alphaTest to prevent texture bleeding
                     const decalMaterial = new THREE.MeshStandardMaterial({
-                        map: texture,
-                        transparent: true,
-                        depthTest: true,
-                        depthWrite: false,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -5, // Slightly increased offset
-                        alphaTest: 0.5, // Discard transparent pixels
-                        roughness: 0.4,
-                        metalness: 0.1
+                        map: texture, transparent: true, depthTest: true,
+                        depthWrite: false, polygonOffset: true, polygonOffsetFactor: -5,
+                        alphaTest: 0.5, roughness: 0.4, metalness: 0.1
                     });
                     
                     const decalInfo = decalPositions[index];
@@ -349,7 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('comment', comment);
 
                 try {
-                    const response = await fetch('api.php', { method: 'POST', body: formData });
+                    // UPDATED: Corrected API path
+                    const response = await fetch('/api/api.php', { method: 'POST', body: formData });
                     const data = await response.json();
                     if (data.success) {
                         statusEl.textContent = 'Saved!';
@@ -376,7 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 commentTextarea.value = 'Loading feedback...';
 
                 const stickerId = card.dataset.stickerId;
-                const response = await fetch(`api.php?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
+                // UPDATED: Corrected API path
+                const response = await fetch(`/api/api.php?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -406,15 +395,81 @@ document.addEventListener('DOMContentLoaded', () => {
         const stickerId = urlParams.get('id');
         if (!stickerId) { container.innerHTML = '<h1>Error: No sticker ID provided.</h1>'; return; }
         function showClaimModal(modalToShow) { idModal.classList.add('hidden'); confirmModal.classList.add('hidden'); registerModal.classList.add('hidden'); if (modalToShow) { modalToShow.classList.remove('hidden'); } }
-        try { const response = await fetch(`api.php?action=getStickerInfo&sticker_id=${stickerId}`); const data = await response.json(); if (data.success) { stickerImage.src = data.sticker.image_data; stickerImage.alt = data.sticker.event_name; } else { container.innerHTML = `<h1>Error: ${data.message}</h1>`; } } catch (error) { container.innerHTML = `<h1>Error: Could not connect to the server.</h1>`; }
+        try { 
+            // UPDATED: Corrected API path
+            const response = await fetch(`/api/api.php?action=getStickerInfo&sticker_id=${stickerId}`); 
+            const data = await response.json(); 
+            if (data.success) { 
+                stickerImage.src = data.sticker.image_data; 
+                stickerImage.alt = data.sticker.event_name; 
+            } else { 
+                container.innerHTML = `<h1>Error: ${data.message}</h1>`; 
+            } 
+        } catch (error) { 
+            container.innerHTML = `<h1>Error: Could not connect to the server.</h1>`; 
+        }
         claimButton.onclick = () => showClaimModal(idModal);
         document.querySelectorAll('#add-sticker-page .modal-back-button').forEach(button => { button.onclick = () => { const parentModal = button.closest('.modal'); if (parentModal && parentModal.id === 'register-modal') { showClaimModal(idModal); } else if (parentModal && parentModal.id === 'confirm-modal') { showClaimModal(idModal); } else { showClaimModal(null); } }; });
         const idForm = document.getElementById('id-form');
-        idForm.onsubmit = async (event) => { event.preventDefault(); const idInput = document.getElementById('employee-id-input'); const employeeId = idInput.value.trim(); const idError = document.getElementById('id-error'); idError.textContent = ''; if (!employeeId) return; const formData = new FormData(); formData.append('action', 'getUser'); formData.append('employee_id', employeeId); const response = await fetch('api.php', { method: 'POST', body: formData }); const data = await response.json(); if (data.success) { const confirmTitle = document.getElementById('confirm-title'); confirmTitle.textContent = `Add sticker to ${data.user.full_name}'s bottle?`; showClaimModal(confirmModal); } else { showClaimModal(registerModal); } };
+        idForm.onsubmit = async (event) => { 
+            event.preventDefault(); 
+            const idInput = document.getElementById('employee-id-input'); 
+            const employeeId = idInput.value.trim(); 
+            const idError = document.getElementById('id-error'); 
+            idError.textContent = ''; 
+            if (!employeeId) return; 
+            const formData = new FormData(); 
+            formData.append('action', 'getUser'); 
+            formData.append('employee_id', employeeId); 
+            // UPDATED: Corrected API path
+            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const data = await response.json(); 
+            if (data.success) { 
+                const confirmTitle = document.getElementById('confirm-title'); 
+                confirmTitle.textContent = `Add sticker to ${data.user.full_name}'s bottle?`; 
+                showClaimModal(confirmModal); 
+            } else { 
+                showClaimModal(registerModal); 
+            } 
+        };
         const registerForm = document.getElementById('register-form');
-        registerForm.onsubmit = async (event) => { event.preventDefault(); const employeeId = document.getElementById('employee-id-input').value.trim(); const fullNameInput = document.getElementById('full-name-input'); const fullName = fullNameInput.value.trim(); const registerError = document.getElementById('register-error'); registerError.textContent = ''; const formData = new FormData(); formData.append('action', 'registerAndAddSticker'); formData.append('employee_id', employeeId); formData.append('full_name', fullName); formData.append('sticker_id', stickerId); const response = await fetch('api.php', { method: 'POST', body: formData }); const data = await response.json(); if(data.success) { await showSuccessAndRedirect(registerModal, employeeId); } else { registerError.textContent = data.message || 'Registration failed.'; } };
+        registerForm.onsubmit = async (event) => { 
+            event.preventDefault(); 
+            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            const fullNameInput = document.getElementById('full-name-input'); 
+            const fullName = fullNameInput.value.trim(); 
+            const registerError = document.getElementById('register-error'); 
+            registerError.textContent = ''; 
+            const formData = new FormData(); 
+            formData.append('action', 'registerAndAddSticker'); 
+            formData.append('employee_id', employeeId); 
+            formData.append('full_name', fullName); 
+            formData.append('sticker_id', stickerId); 
+            // UPDATED: Corrected API path
+            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const data = await response.json(); 
+            if(data.success) { 
+                await showSuccessAndRedirect(registerModal, employeeId); 
+            } else { 
+                registerError.textContent = data.message || 'Registration failed.'; 
+            } 
+        };
         const confirmYesButton = document.getElementById('confirm-yes-button');
-        confirmYesButton.onclick = async () => { const employeeId = document.getElementById('employee-id-input').value.trim(); const formData = new FormData(); formData.append('action', 'addSticker'); formData.append('employee_id', employeeId); formData.append('sticker_id', stickerId); const response = await fetch('api.php', { method: 'POST', body: formData }); const data = await response.json(); if (data.success) { await showSuccessAndRedirect(confirmModal, employeeId); } else { alert('An error occurred.'); } };
+        confirmYesButton.onclick = async () => { 
+            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            const formData = new FormData(); 
+            formData.append('action', 'addSticker'); 
+            formData.append('employee_id', employeeId); 
+            formData.append('sticker_id', stickerId); 
+            // UPDATED: Corrected API path
+            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const data = await response.json(); 
+            if (data.success) { 
+                await showSuccessAndRedirect(confirmModal, employeeId); 
+            } else { 
+                alert('An error occurred.'); 
+            } 
+        };
         
         async function showSuccessAndRedirect(currentModal, employeeId) {
             currentModal.querySelector('.modal-content').innerHTML = `<h2>Success!</h2><p>Sticker added. Redirecting...`;
@@ -423,7 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             formData.append('action', 'getUser');
             formData.append('employee_id', employeeId);
-            const response = await fetch('api.php', { method: 'POST', body: formData });
+            // UPDATED: Corrected API path
+            const response = await fetch('/api/api.php', { method: 'POST', body: formData });
             const data = await response.json();
 
             setTimeout(() => {
@@ -470,7 +526,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageData.length > 1048487) { alert('Image is too large (max 1MB).'); createStickerBtn.disabled = false; createStickerBtn.textContent = 'Create Sticker'; return; }
             const formData = new FormData();
             formData.append('action', 'createSticker'); formData.append('event_name', eventName); formData.append('event_date', eventDate); formData.append('description', description); formData.append('sticker_image_data', imageData);
-            try { const response = await fetch('api.php', { method: 'POST', body: formData }); const data = await response.json(); if(data.success) { alert('Sticker created!'); e.target.reset(); await loadAdminStickers(); } else { alert('Error: ' + data.message); } } catch(error) { alert("Server error."); } finally { createStickerBtn.disabled = false; createStickerBtn.textContent = 'Create Sticker'; }
+            try { 
+                // UPDATED: Corrected API path
+                const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+                const data = await response.json(); 
+                if(data.success) { 
+                    alert('Sticker created!'); 
+                    e.target.reset(); 
+                    await loadAdminStickers(); 
+                } else { 
+                    alert('Error: ' + data.message); 
+                } 
+            } catch(error) { 
+                alert("Server error."); 
+            } finally { 
+                createStickerBtn.disabled = false; 
+                createStickerBtn.textContent = 'Create Sticker'; 
+            }
         };
         reader.onerror = () => { alert('Error reading file.'); createStickerBtn.disabled = false; createStickerBtn.textContent = 'Create Sticker'; };
     }
@@ -479,14 +551,74 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!button) return;
         const card = button.closest('.sticker-card');
         const id = card.dataset.stickerId;
-        if (button.classList.contains('delete-btn')) { if (confirm('Are you sure?')) { const formData = new FormData(); formData.append('action', 'deleteSticker'); formData.append('sticker_id', id); await fetch('api.php', { method: 'POST', body: formData }); await loadAdminStickers(); } } else if (button.classList.contains('edit-btn')) { card.classList.add('editing'); const title = card.querySelector('.sticker-card-title'); const date = card.querySelector('.sticker-card-date'); const description = card.querySelector('.sticker-card-body p'); title.innerHTML = `<input type="text" class="form-group" value="${title.dataset.originalValue}">`; date.innerHTML = `<input type="date" class="form-group" value="${date.dataset.originalValue}">`; description.innerHTML = `<textarea rows="3" class="form-group">${description.dataset.originalValue}</textarea>`; button.innerHTML = '<span class="material-icons">save</span>'; button.title = 'Save'; button.classList.remove('edit-btn'); button.classList.add('save-btn'); } else if (button.classList.contains('save-btn')) { const formData = new FormData(); formData.append('action', 'updateStickerDetails'); formData.append('sticker_id', id); formData.append('event_name', card.querySelector('.sticker-card-title input').value); formData.append('event_date', card.querySelector('.sticker-card-date input').value); formData.append('description', card.querySelector('.sticker-card-body textarea').value); await fetch('api.php', { method: 'POST', body: formData }); await loadAdminStickers(); } else if (button.classList.contains('share-btn')) { const modal = document.getElementById('share-modal'); const urlInput = document.getElementById('share-url-input'); const qrCanvas = document.getElementById('qr-code-canvas'); const url = `${window.location.origin}${window.location.pathname}#add-sticker?id=${id}`; urlInput.value = url; new QRious({ element: qrCanvas, value: url, size: 220, padding: 10, foreground: '#333' }); modal.classList.remove('hidden'); } else if (button.classList.contains('feedback-btn')) { const modal = document.getElementById('feedback-modal'); const title = document.getElementById('feedback-modal-title'); const container = document.getElementById('feedback-list-container'); const cardTitle = card.querySelector('.sticker-card-title').textContent; title.textContent = `Feedback for "${cardTitle}"`; container.innerHTML = '<p>Loading...</p>'; modal.classList.remove('hidden'); try { const response = await fetch(`api.php?action=getFeedback&sticker_id=${id}`); const data = await response.json(); if (data.success && data.feedback.length > 0) { container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join(''); } else { container.innerHTML = '<p>No feedback submitted yet.</p>'; } } catch (error) { container.innerHTML = '<p>Could not load feedback.</p>'; } }
+        if (button.classList.contains('delete-btn')) { 
+            if (confirm('Are you sure?')) { 
+                const formData = new FormData(); 
+                formData.append('action', 'deleteSticker'); 
+                formData.append('sticker_id', id); 
+                // UPDATED: Corrected API path
+                await fetch('/api/api.php', { method: 'POST', body: formData }); 
+                await loadAdminStickers(); 
+            } 
+        } else if (button.classList.contains('edit-btn')) { 
+            card.classList.add('editing'); 
+            const title = card.querySelector('.sticker-card-title'); 
+            const date = card.querySelector('.sticker-card-date'); 
+            const description = card.querySelector('.sticker-card-body p'); 
+            title.innerHTML = `<input type="text" class="form-group" value="${title.dataset.originalValue}">`; 
+            date.innerHTML = `<input type="date" class="form-group" value="${date.dataset.originalValue}">`; 
+            description.innerHTML = `<textarea rows="3" class="form-group">${description.dataset.originalValue}</textarea>`; 
+            button.innerHTML = '<span class="material-icons">save</span>'; 
+            button.title = 'Save'; 
+            button.classList.remove('edit-btn'); 
+            button.classList.add('save-btn'); 
+        } else if (button.classList.contains('save-btn')) { 
+            const formData = new FormData(); 
+            formData.append('action', 'updateStickerDetails'); 
+            formData.append('sticker_id', id); 
+            formData.append('event_name', card.querySelector('.sticker-card-title input').value); 
+            formData.append('event_date', card.querySelector('.sticker-card-date input').value); 
+            formData.append('description', card.querySelector('.sticker-card-body textarea').value); 
+            // UPDATED: Corrected API path
+            await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            await loadAdminStickers(); 
+        } else if (button.classList.contains('share-btn')) { 
+            const modal = document.getElementById('share-modal'); 
+            const urlInput = document.getElementById('share-url-input'); 
+            const qrCanvas = document.getElementById('qr-code-canvas'); 
+            const url = `${window.location.origin}${window.location.pathname}#add-sticker?id=${id}`; 
+            urlInput.value = url; 
+            new QRious({ element: qrCanvas, value: url, size: 220, padding: 10, foreground: '#333' }); 
+            modal.classList.remove('hidden'); 
+        } else if (button.classList.contains('feedback-btn')) { 
+            const modal = document.getElementById('feedback-modal'); 
+            const title = document.getElementById('feedback-modal-title'); 
+            const container = document.getElementById('feedback-list-container'); 
+            const cardTitle = card.querySelector('.sticker-card-title').textContent; 
+            title.textContent = `Feedback for "${cardTitle}"`; 
+            container.innerHTML = '<p>Loading...</p>'; 
+            modal.classList.remove('hidden'); 
+            try { 
+                // UPDATED: Corrected API path
+                const response = await fetch(`/api/api.php?action=getFeedback&sticker_id=${id}`); 
+                const data = await response.json(); 
+                if (data.success && data.feedback.length > 0) { 
+                    container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join(''); 
+                } else { 
+                    container.innerHTML = '<p>No feedback submitted yet.</p>'; 
+                } 
+            } catch (error) { 
+                container.innerHTML = '<p>Could not load feedback.</p>'; 
+            } 
+        }
     }
     async function loadAdminStickers() {
         const stickerCardList = document.getElementById('sticker-card-list');
         if (!stickerCardList) return;
         stickerCardList.innerHTML = '<p>Loading stickers...</p>';
         try {
-            const response = await fetch('api.php?action=getAllStickers');
+            // UPDATED: Corrected API path
+            const response = await fetch('/api/api.php?action=getAllStickers');
             const data = await response.json();
             if (data.success && data.stickers) {
                 stickerCardList.innerHTML = '';
