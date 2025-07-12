@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "/api/**/*.php",
+      "src": "api/api.php",
       "use": "vercel-php@0.6.0"
     }
   ]
