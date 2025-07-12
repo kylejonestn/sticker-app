@@ -123,8 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // The rest of the file remains the same...
-
     const adminLoginForm = document.getElementById('admin-login-form');
     if (adminLoginForm) {
         adminLoginForm.addEventListener('submit', (e) => {
@@ -142,6 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ===============================================
+    //  BOTTLE CREATION & PAGE LOGIC
+    // ===============================================
 
     function createWaterBottle() {
         const bottleGroup = new THREE.Group();
@@ -386,9 +388,134 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ===============================================
+    //  ADD STICKER PAGE LOGIC
+    // ===============================================
     async function initAddStickerPage() {
-        // This function will need to be updated to send JSON as well
-        // We can tackle this in the next phase
+        const container = document.getElementById('claim-container');
+        const stickerImage = document.getElementById('sticker-image');
+        const claimButton = document.getElementById('claim-button');
+        const idModal = document.getElementById('id-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        const registerModal = document.getElementById('register-modal');
+        const errorDivs = document.querySelectorAll('#add-sticker-page .error-message');
+        errorDivs.forEach(div => div.textContent = '');
+        
+        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+        const stickerId = urlParams.get('id');
+        if (!stickerId) { container.innerHTML = '<h1>Error: No sticker ID provided.</h1>'; return; }
+
+        function showClaimModal(modalToShow) { 
+            idModal.classList.add('hidden'); 
+            confirmModal.classList.add('hidden'); 
+            registerModal.classList.add('hidden'); 
+            if (modalToShow) { modalToShow.classList.remove('hidden'); } 
+        }
+
+        try { 
+            const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}`); 
+            const data = await response.json(); 
+            if (data.success) { 
+                stickerImage.src = data.sticker.image_data; 
+                stickerImage.alt = data.sticker.event_name; 
+            } else { 
+                container.innerHTML = `<h1>Error: ${data.message}</h1>`; 
+            } 
+        } catch (error) { 
+            container.innerHTML = `<h1>Error: Could not connect to the server.</h1>`; 
+        }
+
+        claimButton.onclick = () => showClaimModal(idModal);
+        
+        document.querySelectorAll('#add-sticker-page .modal-back-button').forEach(button => { 
+            button.onclick = () => { 
+                const parentModal = button.closest('.modal'); 
+                if (parentModal && parentModal.id === 'register-modal') { showClaimModal(idModal); } 
+                else if (parentModal && parentModal.id === 'confirm-modal') { showClaimModal(idModal); } 
+                else { showClaimModal(null); } 
+            }; 
+        });
+
+        const idForm = document.getElementById('id-form');
+        idForm.onsubmit = async (event) => { 
+            event.preventDefault(); 
+            const idInput = document.getElementById('employee-id-input'); 
+            const employeeId = idInput.value.trim(); 
+            const idError = document.getElementById('id-error'); 
+            idError.textContent = ''; 
+            if (!employeeId) return; 
+
+            const response = await fetch('/api', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'getUser', employee_id: employeeId })
+            }); 
+            const data = await response.json(); 
+            if (data.success) { 
+                const confirmTitle = document.getElementById('confirm-title'); 
+                confirmTitle.textContent = `Add sticker to ${data.user.full_name}'s bottle?`; 
+                showClaimModal(confirmModal); 
+            } else { 
+                showClaimModal(registerModal); 
+            } 
+        };
+
+        const registerForm = document.getElementById('register-form');
+        registerForm.onsubmit = async (event) => { 
+            event.preventDefault(); 
+            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            const fullNameInput = document.getElementById('full-name-input'); 
+            const fullName = fullNameInput.value.trim(); 
+            const registerError = document.getElementById('register-error'); 
+            registerError.textContent = ''; 
+
+            const response = await fetch('/api', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'registerAndAddSticker', 
+                    employee_id: employeeId, 
+                    full_name: fullName, 
+                    sticker_id: stickerId 
+                })
+            }); 
+            const data = await response.json(); 
+            if(data.success) { 
+                await showSuccessAndRedirect(registerModal, employeeId); 
+            } else { 
+                registerError.textContent = data.message || 'Registration failed.'; 
+            } 
+        };
+
+        const confirmYesButton = document.getElementById('confirm-yes-button');
+        confirmYesButton.onclick = async () => { 
+            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            
+            const response = await fetch('/api', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'addSticker', 
+                    employee_id: employeeId, 
+                    sticker_id: stickerId 
+                })
+            }); 
+            const data = await response.json(); 
+            if (data.success) { 
+                await showSuccessAndRedirect(confirmModal, employeeId); 
+            } else { 
+                alert('An error occurred.'); 
+            } 
+        };
+        
+        async function showSuccessAndRedirect(currentModal, employeeId) {
+            currentModal.querySelector('.modal-content').innerHTML = `<h2>Success!</h2><p>Sticker added. Redirecting...`;
+            sessionStorage.setItem('loggedInEmployeeId', employeeId);
+            setTimeout(() => {
+                window.location.hash = '#bottle';
+                navigate(); 
+            }, 1500);
+        }
     }
     
     async function initAdminDashboard() {
