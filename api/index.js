@@ -15,7 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // Create a new PostgreSQL connection pool
-// The 'pg' library will automatically use the POSTGRES_URL environment variable if available
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -24,18 +23,23 @@ const pool = new Pool({
 });
 
 // --- Main API Endpoint ---
-// All actions will be handled through this single endpoint
-app.post('/api', async (req, res) => {
-  // Determine the action from the request body (form data)
-  const { action, employee_id } = req.body;
+// All actions are handled through this single endpoint
+app.all('/api', async (req, res) => {
+  // Combine query params (for GET) and body (for POST)
+  const params = { ...req.query, ...req.body };
+  const { action } = params;
 
+  console.log('Received action:', action, 'with params:', params);
+
+  // ===============================================
+  //  GET USER ACTION
+  // ===============================================
   if (action === 'getUser') {
+    const { employee_id } = params;
     if (!employee_id) {
       return res.status(400).json({ success: false, message: 'Employee ID not provided.' });
     }
-
     try {
-      // --- Get User from Employees table ---
       const userQuery = 'SELECT * FROM Employees WHERE employee_id = $1';
       const userResult = await pool.query(userQuery, [employee_id]);
 
@@ -44,50 +48,119 @@ app.post('/api', async (req, res) => {
       }
       
       const user = userResult.rows[0];
-      const userId = user.id;
-
-      // --- Get Stickers for that user from Collection and Stickers tables ---
       const stickersQuery = `
         SELECT s.id, s.event_name, s.event_date, s.description, s.image_data 
         FROM Stickers s 
         JOIN Collection c ON s.id = c.sticker_id 
-        WHERE c.employee_record_id = $1 
-        ORDER BY c.date_earned DESC
-      `;
-      const stickersResult = await pool.query(stickersQuery, [userId]);
-      
+        WHERE c.employee_record_id = $1 ORDER BY c.date_earned DESC`;
+      const stickersResult = await pool.query(stickersQuery, [user.id]);
       user.stickers = stickersResult.rows;
-
       return res.status(200).json({ success: true, user: user });
-
     } catch (err) {
-      console.error('Error executing getUser action:', err);
+      console.error('Error in getUser:', err);
       return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
   }
 
-  // --- Placeholder for other actions ---
-  // TODO: Add 'addSticker', 'registerAndAddSticker', etc. in the next phases
+  // ===============================================
+  //  GET STICKER INFO ACTION
+  // ===============================================
+  if (action === 'getStickerInfo') {
+    const { sticker_id } = params;
+    if (!sticker_id) {
+      return res.status(400).json({ success: false, message: 'Sticker ID not provided.' });
+    }
+    try {
+      const stickerQuery = 'SELECT * FROM Stickers WHERE id = $1';
+      const stickerResult = await pool.query(stickerQuery, [sticker_id]);
+
+      if (stickerResult.rows.length === 0) {
+        return res.json({ success: false, message: 'Sticker not found.' });
+      }
+      const response = { success: true, sticker: stickerResult.rows[0] };
+
+      // Also get user feedback if employee_id is provided
+      if (params.employee_id) {
+        const userQuery = 'SELECT id FROM Employees WHERE employee_id = $1';
+        const userResult = await pool.query(userQuery, [params.employee_id]);
+        if (userResult.rows.length > 0) {
+          const feedbackQuery = 'SELECT comment FROM Feedback WHERE sticker_id = $1 AND employee_id = $2';
+          const feedbackResult = await pool.query(feedbackQuery, [sticker_id, userResult.rows[0].id]);
+          if (feedbackResult.rows.length > 0) {
+            response.user_feedback = feedbackResult.rows[0].comment;
+          }
+        }
+      }
+      return res.status(200).json(response);
+    } catch (err) {
+      console.error('Error in getStickerInfo:', err);
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
   
+  // ===============================================
+  //  ADD STICKER ACTION
+  // ===============================================
+  if (action === 'addSticker') {
+    const { employee_id, sticker_id } = params;
+    if (!employee_id || !sticker_id) {
+      return res.status(400).json({ success: false, message: 'Required data not provided.' });
+    }
+    try {
+      const userResult = await pool.query('SELECT id FROM Employees WHERE employee_id = $1', [employee_id]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+      const userId = userResult.rows[0].id;
+
+      // Check for duplicates before inserting
+      const checkQuery = 'SELECT id FROM Collection WHERE employee_record_id = $1 AND sticker_id = $2';
+      const checkResult = await pool.query(checkQuery, [userId, sticker_id]);
+      if (checkResult.rows.length === 0) {
+        const insertQuery = 'INSERT INTO Collection (employee_record_id, sticker_id) VALUES ($1, $2)';
+        await pool.query(insertQuery, [userId, sticker_id]);
+      }
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      console.error('Error in addSticker:', err);
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
+
+  // ===============================================
+  //  REGISTER AND ADD STICKER ACTION
+  // ===============================================
+  if (action === 'registerAndAddSticker') {
+    const { employee_id, full_name, sticker_id } = params;
+    if (!employee_id || !full_name || !sticker_id) {
+      return res.status(400).json({ success: false, message: 'Missing data for registration.' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN'); // Start transaction
+      const registerQuery = 'INSERT INTO Employees (employee_id, full_name) VALUES ($1, $2) RETURNING id';
+      const registerResult = await client.query(registerQuery, [employee_id, full_name]);
+      const newUserId = registerResult.rows[0].id;
+      
+      const addStickerQuery = 'INSERT INTO Collection (employee_record_id, sticker_id) VALUES ($1, $2)';
+      await client.query(addStickerQuery, [newUserId, sticker_id]);
+      
+      await client.query('COMMIT'); // Commit transaction
+      return res.status(201).json({ success: true });
+    } catch (err) {
+      await client.query('ROLLBACK'); // Rollback on error
+      console.error('Error in registerAndAddSticker:', err);
+      if (err.code === '23505') { // Unique violation
+        return res.status(409).json({ success: false, message: 'This Employee ID might already be taken.' });
+      }
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    } finally {
+      client.release();
+    }
+  }
+
   // If no action matches, return an error
   return res.status(400).json({ success: false, message: 'Unknown or missing action.' });
-});
-
-
-// --- Test Endpoint (keep for debugging) ---
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query('SELECT NOW()');
-    res.status(200).json({
-      message: 'Database connection successful!',
-      time: result.rows[0].now,
-    });
-    client.release();
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to connect to the database.' });
-  }
 });
 
 // Export the app for Vercel
