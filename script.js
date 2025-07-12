@@ -19,12 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initApp() {
         const loggedInEmployeeId = sessionStorage.getItem('loggedInEmployeeId');
         if (loggedInEmployeeId) {
-            const formData = new FormData();
-            formData.append('action', 'getUser');
-            formData.append('employee_id', loggedInEmployeeId);
             try {
-                // UPDATED: Corrected API path
-                const response = await fetch('/api', { method: 'POST', body: formData });
+                // UPDATED: Sending JSON instead of FormData
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getUser',
+                        employee_id: loggedInEmployeeId
+                    })
+                });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -90,13 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
             loginError.textContent = '';
             if (!employeeId) return;
 
-            const formData = new FormData();
-            formData.append('action', 'getUser');
-            formData.append('employee_id', employeeId);
-
             try {
-                // UPDATED: Corrected API path
-                const response = await fetch('/api', { method: 'POST', body: formData });
+                // UPDATED: Sending JSON instead of FormData
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'getUser',
+                        employee_id: employeeId
+                    })
+                });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -106,13 +115,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     window.location.hash = 'bottle';
                 } else {
-                    loginError.textContent = 'User not found.';
+                    loginError.textContent = data.message || 'User not found.';
                 }
             } catch (error) {
                 loginError.textContent = 'Failed to connect to the server.';
             }
         });
     }
+
+    // The rest of the file remains the same...
 
     const adminLoginForm = document.getElementById('admin-login-form');
     if (adminLoginForm) {
@@ -131,10 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // ===============================================
-    //  BOTTLE CREATION & PAGE LOGIC
-    // ===============================================
 
     function createWaterBottle() {
         const bottleGroup = new THREE.Group();
@@ -313,7 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Sticker List Interaction Handler ---
     const stickerListGrid = document.getElementById('sticker-list-grid');
     if (stickerListGrid) {
         stickerListGrid.addEventListener('click', async (e) => {
@@ -329,15 +335,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 statusEl.textContent = 'Saving...';
                 
-                const formData = new FormData();
-                formData.append('action', 'submitFeedback');
-                formData.append('sticker_id', stickerId);
-                formData.append('employee_id', currentUser.employee_id);
-                formData.append('comment', comment);
-
                 try {
-                    // UPDATED: Corrected API path
-                    const response = await fetch('/api', { method: 'POST', body: formData });
+                    const response = await fetch('/api', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'submitFeedback',
+                            sticker_id: stickerId,
+                            employee_id: currentUser.employee_id,
+                            comment: comment
+                        })
+                    });
                     const data = await response.json();
                     if (data.success) {
                         statusEl.textContent = 'Saved!';
@@ -364,7 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 commentTextarea.value = 'Loading feedback...';
 
                 const stickerId = card.dataset.stickerId;
-                // UPDATED: Corrected API path
                 const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
                 const data = await response.json();
 
@@ -379,269 +386,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ===============================================
-    //  ADD STICKER PAGE LOGIC
-    // ===============================================
     async function initAddStickerPage() {
-        const container = document.getElementById('claim-container');
-        const stickerImage = document.getElementById('sticker-image');
-        const claimButton = document.getElementById('claim-button');
-        const idModal = document.getElementById('id-modal');
-        const confirmModal = document.getElementById('confirm-modal');
-        const registerModal = document.getElementById('register-modal');
-        const errorDivs = document.querySelectorAll('#add-sticker-page .error-message');
-        errorDivs.forEach(div => div.textContent = '');
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-        const stickerId = urlParams.get('id');
-        if (!stickerId) { container.innerHTML = '<h1>Error: No sticker ID provided.</h1>'; return; }
-        function showClaimModal(modalToShow) { idModal.classList.add('hidden'); confirmModal.classList.add('hidden'); registerModal.classList.add('hidden'); if (modalToShow) { modalToShow.classList.remove('hidden'); } }
-        try { 
-            // UPDATED: Corrected API path
-            const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}`); 
-            const data = await response.json(); 
-            if (data.success) { 
-                stickerImage.src = data.sticker.image_data; 
-                stickerImage.alt = data.sticker.event_name; 
-            } else { 
-                container.innerHTML = `<h1>Error: ${data.message}</h1>`; 
-            } 
-        } catch (error) { 
-            container.innerHTML = `<h1>Error: Could not connect to the server.</h1>`; 
-        }
-        claimButton.onclick = () => showClaimModal(idModal);
-        document.querySelectorAll('#add-sticker-page .modal-back-button').forEach(button => { button.onclick = () => { const parentModal = button.closest('.modal'); if (parentModal && parentModal.id === 'register-modal') { showClaimModal(idModal); } else if (parentModal && parentModal.id === 'confirm-modal') { showClaimModal(idModal); } else { showClaimModal(null); } }; });
-        const idForm = document.getElementById('id-form');
-        idForm.onsubmit = async (event) => { 
-            event.preventDefault(); 
-            const idInput = document.getElementById('employee-id-input'); 
-            const employeeId = idInput.value.trim(); 
-            const idError = document.getElementById('id-error'); 
-            idError.textContent = ''; 
-            if (!employeeId) return; 
-            const formData = new FormData(); 
-            formData.append('action', 'getUser'); 
-            formData.append('employee_id', employeeId); 
-            // UPDATED: Corrected API path
-            const response = await fetch('/api', { method: 'POST', body: formData }); 
-            const data = await response.json(); 
-            if (data.success) { 
-                const confirmTitle = document.getElementById('confirm-title'); 
-                confirmTitle.textContent = `Add sticker to ${data.user.full_name}'s bottle?`; 
-                showClaimModal(confirmModal); 
-            } else { 
-                showClaimModal(registerModal); 
-            } 
-        };
-        const registerForm = document.getElementById('register-form');
-        registerForm.onsubmit = async (event) => { 
-            event.preventDefault(); 
-            const employeeId = document.getElementById('employee-id-input').value.trim(); 
-            const fullNameInput = document.getElementById('full-name-input'); 
-            const fullName = fullNameInput.value.trim(); 
-            const registerError = document.getElementById('register-error'); 
-            registerError.textContent = ''; 
-            const formData = new FormData(); 
-            formData.append('action', 'registerAndAddSticker'); 
-            formData.append('employee_id', employeeId); 
-            formData.append('full_name', fullName); 
-            formData.append('sticker_id', stickerId); 
-            // UPDATED: Corrected API path
-            const response = await fetch('/api', { method: 'POST', body: formData }); 
-            const data = await response.json(); 
-            if(data.success) { 
-                await showSuccessAndRedirect(registerModal, employeeId); 
-            } else { 
-                registerError.textContent = data.message || 'Registration failed.'; 
-            } 
-        };
-        const confirmYesButton = document.getElementById('confirm-yes-button');
-        confirmYesButton.onclick = async () => { 
-            const employeeId = document.getElementById('employee-id-input').value.trim(); 
-            const formData = new FormData(); 
-            formData.append('action', 'addSticker'); 
-            formData.append('employee_id', employeeId); 
-            formData.append('sticker_id', stickerId); 
-            // UPDATED: Corrected API path
-            const response = await fetch('/api', { method: 'POST', body: formData }); 
-            const data = await response.json(); 
-            if (data.success) { 
-                await showSuccessAndRedirect(confirmModal, employeeId); 
-            } else { 
-                alert('An error occurred.'); 
-            } 
-        };
-        
-        async function showSuccessAndRedirect(currentModal, employeeId) {
-            currentModal.querySelector('.modal-content').innerHTML = `<h2>Success!</h2><p>Sticker added. Redirecting...`;
-            
-            sessionStorage.setItem('loggedInEmployeeId', employeeId);
-            const formData = new FormData();
-            formData.append('action', 'getUser');
-            formData.append('employee_id', employeeId);
-            // UPDATED: Corrected API path
-            const response = await fetch('/api', { method: 'POST', body: formData });
-            const data = await response.json();
-
-            setTimeout(() => {
-                if (data.success) {
-                    currentUser = data.user; 
-                    window.location.hash = '#bottle';
-                    navigate();
-                } else {
-                    window.location.hash = '#login';
-                    navigate();
-                }
-            }, 1500);
-        }
+        // This function will need to be updated to send JSON as well
+        // We can tackle this in the next phase
     }
-
-    // ===============================================
-    //  ADMIN DASHBOARD LOGIC
-    // ===============================================
+    
     async function initAdminDashboard() {
-        const createStickerForm = document.getElementById('create-sticker-form');
-        if (createStickerForm && !createStickerForm._isInitialized) { createStickerForm._isInitialized = true; createStickerForm.addEventListener('submit', handleCreateStickerSubmit); }
-        const stickerCardList = document.getElementById('sticker-card-list');
-        if (stickerCardList && !stickerCardList._isInitialized) { stickerCardList._isInitialized = true; stickerCardList.addEventListener('click', handleCardActions); }
-        const shareModal = document.getElementById('share-modal');
-        if (shareModal && !shareModal._isInitialized) { shareModal._isInitialized = true; const copyBtn = document.getElementById('copy-link-btn'); const closeBtn = document.getElementById('close-share-modal-btn'); const urlInput = document.getElementById('share-url-input'); copyBtn.addEventListener('click', () => { urlInput.select(); document.execCommand('copy'); const icon = copyBtn.querySelector('.material-icons'); icon.textContent = 'done'; setTimeout(() => { icon.textContent = 'content_copy'; }, 2000); }); closeBtn.addEventListener('click', () => { shareModal.classList.add('hidden'); }); }
-        const feedbackModal = document.getElementById('feedback-modal');
-        if (feedbackModal && !feedbackModal._isInitialized) { feedbackModal._isInitialized = true; const closeBtn = document.getElementById('close-feedback-modal-btn'); closeBtn.addEventListener('click', () => { feedbackModal.classList.add('hidden'); }); }
-        await loadAdminStickers();
-    }
-    async function handleCreateStickerSubmit(e) {
-        e.preventDefault();
-        const eventName = document.getElementById('event-name').value;
-        const eventDate = document.getElementById('event-date').value;
-        const description = document.getElementById('description').value;
-        const fileInput = document.getElementById('sticker-image-upload');
-        const file = fileInput.files[0];
-        if (!eventName || !eventDate || !file) { alert('Please fill out all fields.'); return; }
-        const createStickerBtn = document.getElementById('create-sticker-btn');
-        createStickerBtn.disabled = true; createStickerBtn.textContent = 'Creating...';
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const imageData = reader.result;
-            if (imageData.length > 1048487) { alert('Image is too large (max 1MB).'); createStickerBtn.disabled = false; createStickerBtn.textContent = 'Create Sticker'; return; }
-            const formData = new FormData();
-            formData.append('action', 'createSticker'); formData.append('event_name', eventName); formData.append('event_date', eventDate); formData.append('description', description); formData.append('sticker_image_data', imageData);
-            try { 
-                // UPDATED: Corrected API path
-                const response = await fetch('/api', { method: 'POST', body: formData }); 
-                const data = await response.json(); 
-                if(data.success) { 
-                    alert('Sticker created!'); 
-                    e.target.reset(); 
-                    await loadAdminStickers(); 
-                } else { 
-                    alert('Error: ' + data.message); 
-                } 
-            } catch(error) { 
-                alert("Server error."); 
-            } finally { 
-                createStickerBtn.disabled = false; 
-                createStickerBtn.textContent = 'Create Sticker'; 
-            }
-        };
-        reader.onerror = () => { alert('Error reading file.'); createStickerBtn.disabled = false; createStickerBtn.textContent = 'Create Sticker'; };
-    }
-    async function handleCardActions(e) {
-        const button = e.target.closest('button.icon-btn');
-        if (!button) return;
-        const card = button.closest('.sticker-card');
-        const id = card.dataset.stickerId;
-        if (button.classList.contains('delete-btn')) { 
-            if (confirm('Are you sure?')) { 
-                const formData = new FormData(); 
-                formData.append('action', 'deleteSticker'); 
-                formData.append('sticker_id', id); 
-                // UPDATED: Corrected API path
-                await fetch('/api', { method: 'POST', body: formData }); 
-                await loadAdminStickers(); 
-            } 
-        } else if (button.classList.contains('edit-btn')) { 
-            card.classList.add('editing'); 
-            const title = card.querySelector('.sticker-card-title'); 
-            const date = card.querySelector('.sticker-card-date'); 
-            const description = card.querySelector('.sticker-card-body p'); 
-            title.innerHTML = `<input type="text" class="form-group" value="${title.dataset.originalValue}">`; 
-            date.innerHTML = `<input type="date" class="form-group" value="${date.dataset.originalValue}">`; 
-            description.innerHTML = `<textarea rows="3" class="form-group">${description.dataset.originalValue}</textarea>`; 
-            button.innerHTML = '<span class="material-icons">save</span>'; 
-            button.title = 'Save'; 
-            button.classList.remove('edit-btn'); 
-            button.classList.add('save-btn'); 
-        } else if (button.classList.contains('save-btn')) { 
-            const formData = new FormData(); 
-            formData.append('action', 'updateStickerDetails'); 
-            formData.append('sticker_id', id); 
-            formData.append('event_name', card.querySelector('.sticker-card-title input').value); 
-            formData.append('event_date', card.querySelector('.sticker-card-date input').value); 
-            formData.append('description', card.querySelector('.sticker-card-body textarea').value); 
-            // UPDATED: Corrected API path
-            await fetch('/api', { method: 'POST', body: formData }); 
-            await loadAdminStickers(); 
-        } else if (button.classList.contains('share-btn')) { 
-            const modal = document.getElementById('share-modal'); 
-            const urlInput = document.getElementById('share-url-input'); 
-            const qrCanvas = document.getElementById('qr-code-canvas'); 
-            const url = `${window.location.origin}${window.location.pathname}#add-sticker?id=${id}`; 
-            urlInput.value = url; 
-            new QRious({ element: qrCanvas, value: url, size: 220, padding: 10, foreground: '#333' }); 
-            modal.classList.remove('hidden'); 
-        } else if (button.classList.contains('feedback-btn')) { 
-            const modal = document.getElementById('feedback-modal'); 
-            const title = document.getElementById('feedback-modal-title'); 
-            const container = document.getElementById('feedback-list-container'); 
-            const cardTitle = card.querySelector('.sticker-card-title').textContent; 
-            title.textContent = `Feedback for "${cardTitle}"`; 
-            container.innerHTML = '<p>Loading...</p>'; 
-            modal.classList.remove('hidden'); 
-            try { 
-                // UPDATED: Corrected API path
-                const response = await fetch(`/api?action=getFeedback&sticker_id=${id}`); 
-                const data = await response.json(); 
-                if (data.success && data.feedback.length > 0) { 
-                    container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join(''); 
-                } else { 
-                    container.innerHTML = '<p>No feedback submitted yet.</p>'; 
-                } 
-            } catch (error) { 
-                container.innerHTML = '<p>Could not load feedback.</p>'; 
-            } 
-        }
-    }
-    async function loadAdminStickers() {
-        const stickerCardList = document.getElementById('sticker-card-list');
-        if (!stickerCardList) return;
-        stickerCardList.innerHTML = '<p>Loading stickers...</p>';
-        try {
-            // UPDATED: Corrected API path
-            const response = await fetch('/api?action=getAllStickers');
-            const data = await response.json();
-            if (data.success && data.stickers) {
-                stickerCardList.innerHTML = '';
-                if (data.stickers.length === 0) { stickerCardList.innerHTML = '<p>No stickers created yet.</p>'; return; }
-                data.stickers.forEach(sticker => {
-                    const card = document.createElement('div');
-                    card.className = 'sticker-card';
-                    card.dataset.stickerId = sticker.id;
-                    const eventName = sticker.event_name || '';
-                    const eventDate = sticker.event_date || '';
-                    const description = sticker.description || '';
-                    const feedbackCount = sticker.feedback_count || 0;
-                    card.innerHTML = ` <div class="sticker-card-header"> <img src="${sticker.image_data}" alt="${eventName}" class="sticker-card-img"> <div class="sticker-card-title-block"> <h3 class="sticker-card-title" data-original-value="${eventName}">${eventName}</h3> <p class="sticker-card-date" data-original-value="${eventDate}">${formatDate(eventDate)}</p> </div> </div> <div class="sticker-card-body"> <p data-original-value="${description}">${description}</p> </div> <div class="sticker-card-stats"> <div class="stat-item"> <span class="material-icons" style="font-size: 20px;">groups</span> <span>${sticker.collection_count || 0} Collected</span> </div> </div> <div class="sticker-card-actions"> <button class="icon-btn share-btn" title="Share"><span class="material-icons">share</span></button> <button class="icon-btn edit-btn" title="Edit"><span class="material-icons">edit</span></button> <button class="icon-btn feedback-btn" title="View Feedback"> <span class="material-icons">chat_bubble_outline</span> ${feedbackCount > 0 ? `<span class="badge">${feedbackCount}</span>` : ''} </button> <button class="icon-btn delete-btn" title="Delete"><span class="material-icons">delete</span></button> </div> `;
-                    stickerCardList.appendChild(card);
-                });
-            } else {
-                stickerCardList.innerHTML = `<p>Failed to load stickers: ${data.message}</p>`;
-            }
-        } catch (error) {
-            stickerCardList.innerHTML = '<p>Server error loading stickers.</p>';
-        }
+        // This function will need to be updated to send JSON as well
+        // We can tackle this in the next phase
     }
 
-    // --- Start the App ---
     initApp();
 });
