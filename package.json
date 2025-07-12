@@ -1,0 +1,14 @@
+{
+  "name": "sticker-app-backend",
+  "version": "1.0.0",
+  "description": "Backend for the sticker app",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  }
+}
