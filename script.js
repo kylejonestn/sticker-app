@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('employee_id', loggedInEmployeeId);
             try {
                 // UPDATED: Corrected API path
-                const response = await fetch('/api/api.php', { method: 'POST', body: formData });
+                const response = await fetch('/api', { method: 'POST', body: formData });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // UPDATED: Corrected API path
-                const response = await fetch('/api/api.php', { method: 'POST', body: formData });
+                const response = await fetch('/api', { method: 'POST', body: formData });
                 const data = await response.json();
                 if (data.success) {
                     currentUser = data.user;
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     // UPDATED: Corrected API path
-                    const response = await fetch('/api/api.php', { method: 'POST', body: formData });
+                    const response = await fetch('/api', { method: 'POST', body: formData });
                     const data = await response.json();
                     if (data.success) {
                         statusEl.textContent = 'Saved!';
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const stickerId = card.dataset.stickerId;
                 // UPDATED: Corrected API path
-                const response = await fetch(`/api/api.php?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
+                const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function showClaimModal(modalToShow) { idModal.classList.add('hidden'); confirmModal.classList.add('hidden'); registerModal.classList.add('hidden'); if (modalToShow) { modalToShow.classList.remove('hidden'); } }
         try { 
             // UPDATED: Corrected API path
-            const response = await fetch(`/api/api.php?action=getStickerInfo&sticker_id=${stickerId}`); 
+            const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}`); 
             const data = await response.json(); 
             if (data.success) { 
                 stickerImage.src = data.sticker.image_data; 
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('action', 'getUser'); 
             formData.append('employee_id', employeeId); 
             // UPDATED: Corrected API path
-            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const response = await fetch('/api', { method: 'POST', body: formData }); 
             const data = await response.json(); 
             if (data.success) { 
                 const confirmTitle = document.getElementById('confirm-title'); 
@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('full_name', fullName); 
             formData.append('sticker_id', stickerId); 
             // UPDATED: Corrected API path
-            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const response = await fetch('/api', { method: 'POST', body: formData }); 
             const data = await response.json(); 
             if(data.success) { 
                 await showSuccessAndRedirect(registerModal, employeeId); 
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('employee_id', employeeId); 
             formData.append('sticker_id', stickerId); 
             // UPDATED: Corrected API path
-            const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            const response = await fetch('/api', { method: 'POST', body: formData }); 
             const data = await response.json(); 
             if (data.success) { 
                 await showSuccessAndRedirect(confirmModal, employeeId); 
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('action', 'getUser');
             formData.append('employee_id', employeeId);
             // UPDATED: Corrected API path
-            const response = await fetch('/api/api.php', { method: 'POST', body: formData });
+            const response = await fetch('/api', { method: 'POST', body: formData });
             const data = await response.json();
 
             setTimeout(() => {
@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('action', 'createSticker'); formData.append('event_name', eventName); formData.append('event_date', eventDate); formData.append('description', description); formData.append('sticker_image_data', imageData);
             try { 
                 // UPDATED: Corrected API path
-                const response = await fetch('/api/api.php', { method: 'POST', body: formData }); 
+                const response = await fetch('/api', { method: 'POST', body: formData }); 
                 const data = await response.json(); 
                 if(data.success) { 
                     alert('Sticker created!'); 
@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('action', 'deleteSticker'); 
                 formData.append('sticker_id', id); 
                 // UPDATED: Corrected API path
-                await fetch('/api/api.php', { method: 'POST', body: formData }); 
+                await fetch('/api', { method: 'POST', body: formData }); 
                 await loadAdminStickers(); 
             } 
         } else if (button.classList.contains('edit-btn')) { 
@@ -580,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('event_date', card.querySelector('.sticker-card-date input').value); 
             formData.append('description', card.querySelector('.sticker-card-body textarea').value); 
             // UPDATED: Corrected API path
-            await fetch('/api/api.php', { method: 'POST', body: formData }); 
+            await fetch('/api', { method: 'POST', body: formData }); 
             await loadAdminStickers(); 
         } else if (button.classList.contains('share-btn')) { 
             const modal = document.getElementById('share-modal'); 
@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.remove('hidden'); 
             try { 
                 // UPDATED: Corrected API path
-                const response = await fetch(`/api/api.php?action=getFeedback&sticker_id=${id}`); 
+                const response = await fetch(`/api?action=getFeedback&sticker_id=${id}`); 
                 const data = await response.json(); 
                 if (data.success && data.feedback.length > 0) { 
                     container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join(''); 
@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stickerCardList.innerHTML = '<p>Loading stickers...</p>';
         try {
             // UPDATED: Corrected API path
-            const response = await fetch('/api/api.php?action=getAllStickers');
+            const response = await fetch('/api?action=getAllStickers');
             const data = await response.json();
             if (data.success && data.stickers) {
                 stickerCardList.innerHTML = '';
