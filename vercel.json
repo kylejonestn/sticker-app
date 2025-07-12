@@ -1,9 +1,13 @@
 {
-  "version": 2,
-  "builds": [
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.6.0"
+    }
+  },
+  "rewrites": [
     {
-      "src": "api/index.php",
-      "use": "vercel-php@0.6.0"
+      "source": "/api/(.*)",
+      "destination": "/api/index.php"
     }
   ]
 }
