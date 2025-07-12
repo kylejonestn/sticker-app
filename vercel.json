@@ -6,10 +6,10 @@
       "use": "vercel-php@0.6.0"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/api.php"
+      "src": "/api/.*",
+      "dest": "/api/api.php"
     }
   ]
 }
