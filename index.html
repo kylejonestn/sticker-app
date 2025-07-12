@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticker Bottle</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- ADDED: All necessary libraries loaded here -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/DecalGeometry.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --background-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --error-color: #d93025;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #5f6368;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            background-color: var(--background-color); 
+            color: var(--text-color); 
+        }
+        .hidden { display: none !important; }
+        .page { 
+            width: 100%; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box; 
+        }
+        button { 
+            padding: 12px 20px; 
+            border: none; 
+            background-color: var(--primary-color); 
+            color: white; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1em; 
+            transition: background-color 0.2s; 
+        }
+        button:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .error-message { margin-top: 15px; color: var(--error-color); font-size: 0.9em; }
+        .form-group {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* --- Centered Pages (Login, Add Sticker) --- */
+        .centered-page { justify-content: center; align-items: center; padding: 20px; }
+        .centered-container { 
+            text-align: center; 
+            background: var(--container-bg); 
+            padding: 40px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+            max-width: 400px; 
+            width: 90%; 
+        }
+        .centered-container h1 { margin-top: 0; }
+        #login-employee-id { font-size: 20px; text-align: center; }
+        #sticker-display { width: 250px; height: 250px; margin: 20px auto; }
+        #sticker-image { max-width: 100%; max-height: 100%; }
+
+        /* --- Modals --- */
+        .modal { position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--container-bg); padding: 30px; border-radius: 8px; text-align: center; width: 90%; max-width: 450px; box-sizing: border-box; }
+        .modal-buttons { margin-top: 20px; display: flex; justify-content: space-around; }
+
+        /* --- Bottle Viewer Page --- */
+        #bottle-page { display: flex; flex-direction: column; height: 100vh; }
+        #bottle-viewer-container { width: 100%; height: 55vh; background-color: #d8dde1; position: relative; }
+        #bottle-canvas { width: 100%; height: 100%; display: block; }
+        #sticker-collection-container { flex-grow: 1; background-color: var(--container-bg); overflow-y: auto; padding: 20px; box-sizing: border-box; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); }
+        #sticker-collection-container h2 { text-align: center; margin: 0 0 20px 0; }
+        #sticker-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        .admin-gear-link {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            color: #333;
+            text-decoration: none;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+        .admin-gear-link .material-icons {
+            font-size: 40px;
+        }
+        .admin-gear-link:hover {
+            transform: rotate(15deg);
+        }
+   
+        /* --- Sticker Collection & Feedback Styles --- */
+        .sticker-item-card { background: var(--light-gray); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; transition: background-color 0.2s; }
+        .sticker-item-card:hover { background-color: var(--medium-gray); }
+        .sticker-item-main { display: flex; align-items: center; }
+        .sticker-item-img { width: 60px; height: 60px; object-fit: contain; margin-right: 15px; flex-shrink: 0; }
+        .sticker-item-info { text-align: left; }
+        .sticker-item-info h4 { font-size: 1rem; margin: 0 0 4px 0; }
+        .sticker-item-info p { font-size: 0.8rem; color: var(--dark-gray); margin: 0; }
+        .sticker-item-details { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; text-align: left; }
+        .sticker-description { font-size: 0.85rem; color: var(--text-color); margin: 0 0 10px 0; }
+        .feedback-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 8px; font-family: inherit; font-size: 0.9rem; margin-bottom: 10px; }
+        .feedback-actions { display: flex; justify-content: space-between; align-items: center; }
+        .feedback-actions button { padding: 8px 15px; font-size: 0.9em; }
+        .feedback-status { font-size: 0.85em; color: var(--primary-color); }
+
+        /* --- Admin Dashboard --- */
+        #admin-dashboard-page { justify-content: flex-start; overflow-y: auto; }
+        .dashboard-container { width: 90%; max-width: 1200px; margin: 30px auto; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .form-card, .list-card { background: var(--container-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #sticker-card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .sticker-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .sticker-card-header { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        .sticker-card-img { width: 50px; height: 50px; margin-right: 10px; }
+        .sticker-card-title { font-size: 1rem; margin: 0; }
+        .sticker-card-date { font-size: 0.8rem; color: #666; margin: 0; }
+        .sticker-card-body, .sticker-card-stats, .sticker-card-actions { padding: 10px; }
+        .sticker-card-actions { display: flex; justify-content: space-around; background: #f7f7f7; }
+        .icon-btn { background: none; border: none; cursor: pointer; color: #555; padding: 5px; position: relative; }
+        .icon-btn .badge { position: absolute; top: 0; right: 0; background: red; color: white; border-radius: 50%; font-size: 10px; width: 16px; height: 16px; line-height: 16px; text-align: center; }
+        #share-url-input { width: 80%; }
+        #qr-code-canvas { margin: 20px auto; display: block; }
+        .feedback-item { border-bottom: 1px solid #eee; padding: 10px 0; text-align: left; }
+        .feedback-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <!-- All page content remains the same -->
+    <div id="login-page" class="page centered-page">
+        <div class="centered-container">
+            <h1>My Sticker Bottle</h1>
+            <p>Enter your Employee ID to view your collection.</p>
+            <form id="login-form">
+                <input type="text" id="login-employee-id" class="form-group" placeholder="Employee ID" required>
+                <button type="submit">View My Bottle</button>
+            </form>
+            <div id="login-error" class="error-message"></div>
+        </div>
+    </div>
+    <div id="add-sticker-page" class="page centered-page hidden">
+        <div class="centered-container" id="claim-container">
+            <h1>You've Found a Sticker!</h1>
+            <div id="sticker-display">
+                <img id="sticker-image" src="" alt="New Sticker">
+            </div>
+            <button id="claim-button">Add to My Collection</button>
+        </div>
+        <div id="id-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Enter Your Employee ID</h2>
+                <form id="id-form">
+                    <input type="text" id="employee-id-input" class="form-group" placeholder="Employee ID" required>
+                    <div id="id-error" class="error-message"></div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-back-button">Back</button>
+                        <button type="submit">Next</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="confirm-title">Add sticker to...?</h2>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-back-button">Not Me</button>
+                    <button id="confirm-yes-button">Yes, Add It!</button>
+                </div>
+            </div>
+        </div>
+        <div id="register-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Welcome! Let's Register You.</h2>
+                <p>We don't have this Employee ID on file. Please enter your name to create an account.</p>
+                <form id="register-form">
+                    <input type="text" id="full-name-input" class="form-group" placeholder="Your Full Name" required>
+                    <div id="register-error" class="error-message"></div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-back-button">Back</button>
+                        <button type="submit">Create Account & Add Sticker</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div id="bottle-page" class="page hidden">
+        <div id="bottle-viewer-container">
+            <canvas id="bottle-canvas"></canvas>
+        </div>
+        <div id="sticker-collection-container">
+            <h2>Your Sticker Collection</h2>
+            <div id="sticker-list-grid"></div>
+        </div>
+    </div>
+    <div id="admin-login-page" class="page centered-page hidden">
+        <div class="centered-container">
+            <h1>Admin Login</h1>
+            <form id="admin-login-form">
+                <input type="password" id="admin-password-input" class="form-group" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <div id="admin-error" class="error-message"></div>
+            <p style="margin-top: 30px; font-size: 0.8em;"><a href="#login">Back to User Login</a></p>
+        </div>
+    </div>
+    <div id="admin-dashboard-page" class="page hidden">
+        <div class="dashboard-container">
+            <h1>Admin Dashboard</h1>
+            <div class="dashboard-grid">
+                <div class="form-card">
+                    <h3>Create New Sticker</h3>
+                    <form id="create-sticker-form">
+                        <input type="text" id="event-name" class="form-group" placeholder="Event Name" required>
+                        <input type="date" id="event-date" class="form-group" required>
+                        <textarea id="description" class="form-group" placeholder="Event Description" rows="4"></textarea>
+                        <label for="sticker-image-upload">Sticker Image (PNG, <1MB)</label>
+                        <input type="file" id="sticker-image-upload" class="form-group" accept="image/png" required>
+                        <button type="submit" id="create-sticker-btn">Create Sticker</button>
+                    </form>
+                </div>
+                <div class="list-card">
+                    <h3>Manage Stickers</h3>
+                    <div id="sticker-card-list"></div>
+                </div>
+            </div>
+        </div>
+        <div id="share-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Share Sticker</h2>
+                <p>Share this link or QR code at your event.</p>
+                <input type="text" id="share-url-input" readonly>
+                <button id="copy-link-btn" class="icon-btn"><span class="material-icons">content_copy</span></button>
+                <canvas id="qr-code-canvas"></canvas>
+                <button id="close-share-modal-btn">Close</button>
+            </div>
+        </div>
+        <div id="feedback-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="feedback-modal-title">Event Feedback</h2>
+                <div id="feedback-list-container"></div>
+                <button id="close-feedback-modal-btn" style="margin-top: 20px;">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+
+</body>
+</html>
