@@ -481,11 +481,33 @@ document.addEventListener('DOMContentLoaded', () => {
             } 
         };
         
+        // UPDATED: This function now correctly populates the user session before redirecting.
         async function showSuccessAndRedirect(currentModal, employeeId) {
-            // UPDATED: No more success message, just redirect immediately.
             sessionStorage.setItem('loggedInEmployeeId', employeeId);
-            window.location.hash = '#bottle';
-            navigate(); 
+
+            // Fetch the user data to populate the currentUser variable before navigating
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getUser',
+                        employee_id: employeeId
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentUser = data.user; // This is the crucial step
+                    window.location.hash = '#bottle';
+                } else {
+                    // Fallback if user fetch fails for some reason
+                    window.location.hash = '#login';
+                }
+            } catch (error) {
+                console.error("Error fetching user after adding sticker:", error);
+                window.location.hash = '#login';
+            }
+            // The hashchange event listener will automatically call navigate()
         }
     }
     
