@@ -141,6 +141,65 @@
         #qr-code-canvas { margin: 20px auto; display: block; }
         .feedback-item { border-bottom: 1px solid #eee; padding: 10px 0; text-align: left; }
         .feedback-item:last-child { border-bottom: none; }
+
+        /* --- User Feedback Modal --- */
+        #user-feedback-modal .modal-content-user {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            overflow: hidden;
+        }
+        @media (min-width: 600px) {
+            #user-feedback-modal .modal-content-user {
+                flex-direction: row;
+                max-width: 700px;
+            }
+        }
+        #modal-sticker-img-container {
+            background-color: #e9ecef;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        #modal-sticker-img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+        }
+        #modal-sticker-info {
+            padding: 25px;
+            flex-grow: 1;
+        }
+        #modal-sticker-title {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+        }
+        #modal-sticker-date, #modal-sticker-description {
+            font-size: 0.9rem;
+            color: #5f6368;
+            margin: 0 0 15px 0;
+        }
+        #user-feedback-form label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        #user-feedback-comment {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .modal-save-notice {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
     </style>
 </head>
 <body>
@@ -258,6 +317,24 @@
                 <h2 id="feedback-modal-title">Event Feedback</h2>
                 <div id="feedback-list-container"></div>
                 <button id="close-feedback-modal-btn" style="margin-top: 20px;">Close</button>
+            </div>
+        </div>
+    </div>
+    <!-- ======================= FEEDBACK MODAL ======================= -->
+    <div id="user-feedback-modal" class="modal hidden">
+        <div class="modal-content-user">
+            <div id="modal-sticker-img-container">
+                <img id="modal-sticker-img" src="" alt="Sticker">
+            </div>
+            <div id="modal-sticker-info">
+                <h2 id="modal-sticker-title"></h2>
+                <p id="modal-sticker-date"></p>
+                <p id="modal-sticker-description"></p>
+                <form id="user-feedback-form">
+                    <label for="user-feedback-comment">Your Feedback:</label>
+                    <textarea id="user-feedback-comment" placeholder="What did you think of this event?" rows="5"></textarea>
+                    <p class="modal-save-notice">Your feedback is saved automatically when you close this window.</p>
+                </form>
             </div>
         </div>
     </div>
