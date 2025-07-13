@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <!-- ADDED: All necessary libraries loaded here -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/DecalGeometry.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
@@ -79,7 +78,21 @@
         #sticker-image { max-width: 100%; max-height: 100%; }
 
         /* --- Modals --- */
-        .modal { position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal { 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            /* UPDATED: Added background color for dimmed effect */
+            background-color: rgba(0, 0, 0, 0.6); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
+            box-sizing: border-box; 
+        }
         .modal-content { background: var(--container-bg); padding: 30px; border-radius: 8px; text-align: center; width: 90%; max-width: 450px; box-sizing: border-box; }
         .modal-buttons { margin-top: 20px; display: flex; justify-content: space-around; }
 
@@ -108,40 +121,13 @@
         }
    
         /* --- Sticker Collection & Feedback Styles --- */
-        .sticker-item-card { background: var(--light-gray); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; transition: background-color 0.2s; }
+        .sticker-item-card { background: var(--light-gray); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; transition: background-color 0.2s; display: flex; align-items: center; }
         .sticker-item-card:hover { background-color: var(--medium-gray); }
-        .sticker-item-main { display: flex; align-items: center; }
         .sticker-item-img { width: 60px; height: 60px; object-fit: contain; margin-right: 15px; flex-shrink: 0; }
         .sticker-item-info { text-align: left; }
         .sticker-item-info h4 { font-size: 1rem; margin: 0 0 4px 0; }
         .sticker-item-info p { font-size: 0.8rem; color: var(--dark-gray); margin: 0; }
-        .sticker-item-details { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; text-align: left; }
-        .sticker-description { font-size: 0.85rem; color: var(--text-color); margin: 0 0 10px 0; }
-        .feedback-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 8px; font-family: inherit; font-size: 0.9rem; margin-bottom: 10px; }
-        .feedback-actions { display: flex; justify-content: space-between; align-items: center; }
-        .feedback-actions button { padding: 8px 15px; font-size: 0.9em; }
-        .feedback-status { font-size: 0.85em; color: var(--primary-color); }
-
-        /* --- Admin Dashboard --- */
-        #admin-dashboard-page { justify-content: flex-start; overflow-y: auto; }
-        .dashboard-container { width: 90%; max-width: 1200px; margin: 30px auto; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
-        .form-card, .list-card { background: var(--container-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        #sticker-card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .sticker-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .sticker-card-header { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
-        .sticker-card-img { width: 50px; height: 50px; margin-right: 10px; }
-        .sticker-card-title { font-size: 1rem; margin: 0; }
-        .sticker-card-date { font-size: 0.8rem; color: #666; margin: 0; }
-        .sticker-card-body, .sticker-card-stats, .sticker-card-actions { padding: 10px; }
-        .sticker-card-actions { display: flex; justify-content: space-around; background: #f7f7f7; }
-        .icon-btn { background: none; border: none; cursor: pointer; color: #555; padding: 5px; position: relative; }
-        .icon-btn .badge { position: absolute; top: 0; right: 0; background: red; color: white; border-radius: 50%; font-size: 10px; width: 16px; height: 16px; line-height: 16px; text-align: center; }
-        #share-url-input { width: 80%; }
-        #qr-code-canvas { margin: 20px auto; display: block; }
-        .feedback-item { border-bottom: 1px solid #eee; padding: 10px 0; text-align: left; }
-        .feedback-item:last-child { border-bottom: none; }
-
+        
         /* --- User Feedback Modal --- */
         #user-feedback-modal .modal-content-user {
             display: flex;
@@ -151,6 +137,8 @@
             max-width: 500px;
             width: 90%;
             overflow: hidden;
+            background-color: var(--container-bg);
+            border-radius: 8px;
         }
         @media (min-width: 600px) {
             #user-feedback-modal .modal-content-user {
@@ -192,6 +180,10 @@
         #user-feedback-comment {
             width: 100%;
             box-sizing: border-box;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-family: inherit;
         }
         .modal-save-notice {
             font-size: 0.75rem;
@@ -199,12 +191,37 @@
             text-align: center;
             margin-top: 15px;
         }
-        
+
+        /* --- Admin Dashboard --- */
+        #admin-dashboard-page { justify-content: flex-start; overflow-y: auto; }
+        .dashboard-container { width: 90%; max-width: 1200px; margin: 30px auto; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 30px; }
+        @media (min-width: 992px) {
+            .dashboard-grid { grid-template-columns: 1fr 2fr; }
+        }
+        .form-card, .list-card { background: var(--container-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #sticker-card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .sticker-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+        .sticker-card-header { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        .sticker-card-img { width: 50px; height: 50px; margin-right: 10px; object-fit: contain; }
+        .sticker-card-title { font-size: 1rem; margin: 0; }
+        .sticker-card-date { font-size: 0.8rem; color: #666; margin: 0; }
+        .sticker-card-body { padding: 10px; flex-grow: 1; }
+        .sticker-card-stats, .sticker-card-actions { padding: 10px; }
+        .sticker-card-actions { display: flex; justify-content: space-around; background: #f7f7f7; }
+        .icon-btn { background: none; border: none; cursor: pointer; color: #555; padding: 5px; position: relative; }
+        .icon-btn .badge { position: absolute; top: 0; right: 0; background: red; color: white; border-radius: 50%; font-size: 10px; width: 16px; height: 16px; line-height: 16px; text-align: center; }
+        #share-url-input { width: 80%; }
+        #qr-code-canvas { margin: 20px auto; display: block; }
+        .feedback-item { border-bottom: 1px solid #eee; padding: 10px 0; text-align: left; }
+        .feedback-item:last-child { border-bottom: none; }
+        .feedback-comment { font-style: italic; }
+        .feedback-meta { font-size: 0.8em; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <!-- All page content remains the same -->
+    <!-- ======================= LOGIN PAGE ======================= -->
     <div id="login-page" class="page centered-page">
         <div class="centered-container">
             <h1>My Sticker Bottle</h1>
@@ -216,6 +233,8 @@
             <div id="login-error" class="error-message"></div>
         </div>
     </div>
+
+    <!-- ======================= ADD STICKER PAGE ======================= -->
     <div id="add-sticker-page" class="page centered-page hidden">
         <div class="centered-container" id="claim-container">
             <h1>You've Found a Sticker!</h1>
@@ -261,6 +280,8 @@
             </div>
         </div>
     </div>
+
+    <!-- ======================= BOTTLE VIEWER PAGE ======================= -->
     <div id="bottle-page" class="page hidden">
         <div id="bottle-viewer-container">
             <canvas id="bottle-canvas"></canvas>
@@ -270,6 +291,8 @@
             <div id="sticker-list-grid"></div>
         </div>
     </div>
+
+    <!-- ======================= ADMIN LOGIN PAGE ======================= -->
     <div id="admin-login-page" class="page centered-page hidden">
         <div class="centered-container">
             <h1>Admin Login</h1>
@@ -281,6 +304,8 @@
             <p style="margin-top: 30px; font-size: 0.8em;"><a href="#login">Back to User Login</a></p>
         </div>
     </div>
+
+    <!-- ======================= ADMIN DASHBOARD PAGE ======================= -->
     <div id="admin-dashboard-page" class="page hidden">
         <div class="dashboard-container">
             <h1>Admin Dashboard</h1>
@@ -320,7 +345,8 @@
             </div>
         </div>
     </div>
-    <!-- ======================= FEEDBACK MODAL ======================= -->
+    
+    <!-- ======================= USER FEEDBACK MODAL ======================= -->
     <div id="user-feedback-modal" class="modal hidden">
         <div class="modal-content-user">
             <div id="modal-sticker-img-container">
@@ -332,7 +358,7 @@
                 <p id="modal-sticker-description"></p>
                 <form id="user-feedback-form">
                     <label for="user-feedback-comment">Your Feedback:</label>
-                    <textarea id="user-feedback-comment" placeholder="What did you think of this event?" rows="5"></textarea>
+                    <textarea id="user-feedback-comment" class="form-group" placeholder="What did you think of this event?" rows="5"></textarea>
                     <p class="modal-save-notice">Your feedback is saved automatically when you close this window.</p>
                 </form>
             </div>
