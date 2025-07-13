@@ -69,6 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pageName === 'bottle' && !currentUser) {
             window.location.hash = '#login';
+            // If we are redirected to login, we need to re-run navigate to show the login page
+            if (pageName !== 'login') {
+                navigate();
+            }
             return;
         } else if (!activePage) {
             activePage = document.getElementById('login-page');
@@ -123,7 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (currentUser.employee_id === 'cg12420') {
                         sessionStorage.setItem('isAdmin', 'true');
                     }
-                    window.location.hash = 'bottle';
+                    window.location.hash = '#bottle';
+                    // UPDATED: Manually call navigate() to force the page update.
+                    navigate();
                 } else {
                     loginError.textContent = data.message || 'User not found.';
                 }
@@ -481,11 +487,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } 
         };
         
-        // UPDATED: This function now correctly populates the user session before redirecting.
         async function showSuccessAndRedirect(currentModal, employeeId) {
             sessionStorage.setItem('loggedInEmployeeId', employeeId);
 
-            // Fetch the user data to populate the currentUser variable before navigating
             try {
                 const response = await fetch('/api', {
                     method: 'POST',
@@ -497,17 +501,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    currentUser = data.user; // This is the crucial step
+                    currentUser = data.user;
                     window.location.hash = '#bottle';
                 } else {
-                    // Fallback if user fetch fails for some reason
                     window.location.hash = '#login';
                 }
             } catch (error) {
                 console.error("Error fetching user after adding sticker:", error);
                 window.location.hash = '#login';
             }
-            // The hashchange event listener will automatically call navigate()
         }
     }
     
