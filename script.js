@@ -6,13 +6,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
 
     // --- Helper function for date formatting ---
+    // UPDATED: This function now creates a clean, readable date format.
     function formatDate(dateString) {
-        if (!dateString || !dateString.includes('-')) {
-            return dateString; 
+        if (!dateString) {
+            return ''; // Return empty string if no date is provided
         }
-        const datePart = dateString.split(' ')[0];
-        const [year, month, day] = datePart.split('-');
-        return `${month}/${day}/${year}`;
+        try {
+            const date = new Date(dateString);
+            // Check if the date is valid. Invalid dates can result from parsing errors.
+            if (isNaN(date.getTime())) {
+                // If parsing fails, return the original string
+                return dateString; 
+            }
+            // Use toLocaleDateString for a nice format, e.g., "August 29, 2025"
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'UTC' // Use UTC to prevent off-by-one day errors due to local time zones
+            });
+        } catch (error) {
+            console.error("Could not format date:", dateString, error);
+            return dateString; // Return original string on error
+        }
     }
 
     // --- Main App Initialization & Router ---
