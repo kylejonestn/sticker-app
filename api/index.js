@@ -39,7 +39,8 @@ app.all('/api', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Employee ID not provided.' });
     }
     try {
-      const userQuery = 'SELECT * FROM Employees WHERE employee_id = $1';
+      // UPDATED: Use LOWER() for case-insensitive comparison
+      const userQuery = 'SELECT * FROM Employees WHERE LOWER(employee_id) = LOWER($1)';
       const userResult = await pool.query(userQuery, [employee_id]);
 
       if (userResult.rows.length === 0) {
@@ -76,7 +77,7 @@ app.all('/api', async (req, res) => {
       const response = { success: true, sticker: stickerResult.rows[0] };
 
       if (employee_id) {
-        const userQuery = 'SELECT id FROM Employees WHERE employee_id = $1';
+        const userQuery = 'SELECT id FROM Employees WHERE LOWER(employee_id) = LOWER($1)';
         const userResult = await pool.query(userQuery, [employee_id]);
         if (userResult.rows.length > 0) {
           const feedbackQuery = 'SELECT comment FROM Feedback WHERE sticker_id = $1 AND employee_id = $2';
@@ -99,7 +100,7 @@ app.all('/api', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Required data not provided.' });
     }
     try {
-      const userResult = await pool.query('SELECT id FROM Employees WHERE employee_id = $1', [employee_id]);
+      const userResult = await pool.query('SELECT id FROM Employees WHERE LOWER(employee_id) = LOWER($1)', [employee_id]);
       if (userResult.rows.length === 0) {
         return res.status(404).json({ success: false, message: 'Employee not found.' });
       }
@@ -127,7 +128,7 @@ app.all('/api', async (req, res) => {
     try {
       await client.query('BEGIN');
       const registerQuery = 'INSERT INTO Employees (employee_id, full_name) VALUES ($1, $2) RETURNING id';
-      const registerResult = await client.query(registerQuery, [employee_id, full_name]);
+      const registerResult = await client.query(registerQuery, [employee_id.toLowerCase(), full_name]);
       const newUserId = registerResult.rows[0].id;
       
       const addStickerQuery = 'INSERT INTO Collection (employee_record_id, sticker_id) VALUES ($1, $2)';
@@ -153,7 +154,7 @@ app.all('/api', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Missing required data for feedback.' });
     }
     try {
-        const userResult = await pool.query('SELECT id FROM Employees WHERE employee_id = $1', [employee_id]);
+        const userResult = await pool.query('SELECT id FROM Employees WHERE LOWER(employee_id) = LOWER($1)', [employee_id]);
         if (userResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -249,7 +250,6 @@ app.all('/api', async (req, res) => {
       }
   }
 
-  // NEW: Action to get all feedback for a specific sticker
   if (action === 'getFeedback') {
     const { sticker_id } = params;
     if (!sticker_id) {
@@ -270,7 +270,6 @@ app.all('/api', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
   }
-
 
   // If no action matches, return an error
   if (!action) {
