@@ -62,7 +62,7 @@ app.all('/api', async (req, res) => {
   }
 
   if (action === 'getStickerInfo') {
-    const { sticker_id } = params;
+    const { sticker_id, employee_id } = params;
     if (!sticker_id) {
       return res.status(400).json({ success: false, message: 'Sticker ID not provided.' });
     }
@@ -75,9 +75,9 @@ app.all('/api', async (req, res) => {
       }
       const response = { success: true, sticker: stickerResult.rows[0] };
 
-      if (params.employee_id) {
+      if (employee_id) {
         const userQuery = 'SELECT id FROM Employees WHERE employee_id = $1';
-        const userResult = await pool.query(userQuery, [params.employee_id]);
+        const userResult = await pool.query(userQuery, [employee_id]);
         if (userResult.rows.length > 0) {
           const feedbackQuery = 'SELECT comment FROM Feedback WHERE sticker_id = $1 AND employee_id = $2';
           const feedbackResult = await pool.query(feedbackQuery, [sticker_id, userResult.rows[0].id]);
@@ -144,6 +144,36 @@ app.all('/api', async (req, res) => {
       return res.status(500).json({ success: false, message: 'Internal Server Error' });
     } finally {
       client.release();
+    }
+  }
+
+  // ===============================================
+  //  FEEDBACK ACTION
+  // ===============================================
+  if (action === 'submitFeedback') {
+    const { employee_id, sticker_id, comment } = params;
+    if (!employee_id || !sticker_id) {
+        return res.status(400).json({ success: false, message: 'Missing required data for feedback.' });
+    }
+    try {
+        const userResult = await pool.query('SELECT id FROM Employees WHERE employee_id = $1', [employee_id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+        const userId = userResult.rows[0].id;
+
+        // This query will INSERT a new row, or UPDATE the existing one if the user has already left feedback for this sticker.
+        const upsertQuery = `
+            INSERT INTO Feedback (sticker_id, employee_id, comment)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (sticker_id, employee_id) 
+            DO UPDATE SET comment = EXCLUDED.comment, submitted_at = NOW()
+        `;
+        await pool.query(upsertQuery, [sticker_id, userId, comment]);
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Error in submitFeedback:', err);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
   }
 
