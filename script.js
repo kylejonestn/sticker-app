@@ -482,12 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         async function showSuccessAndRedirect(currentModal, employeeId) {
-            currentModal.querySelector('.modal-content').innerHTML = `<h2>Success!</h2><p>Sticker added. Redirecting...`;
+            // UPDATED: No more success message, just redirect immediately.
             sessionStorage.setItem('loggedInEmployeeId', employeeId);
-            setTimeout(() => {
-                window.location.hash = '#bottle';
-                navigate(); 
-            }, 1500);
+            window.location.hash = '#bottle';
+            navigate(); 
         }
     }
     
