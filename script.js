@@ -6,28 +6,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
 
     // --- Helper function for date formatting ---
-    // UPDATED: This function now creates a clean, readable date format.
     function formatDate(dateString) {
         if (!dateString) {
-            return ''; // Return empty string if no date is provided
+            return '';
         }
         try {
             const date = new Date(dateString);
-            // Check if the date is valid. Invalid dates can result from parsing errors.
             if (isNaN(date.getTime())) {
-                // If parsing fails, return the original string
                 return dateString; 
             }
-            // Use toLocaleDateString for a nice format, e.g., "August 29, 2025"
             return date.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
-                timeZone: 'UTC' // Use UTC to prevent off-by-one day errors due to local time zones
+                timeZone: 'UTC'
             });
         } catch (error) {
             console.error("Could not format date:", dateString, error);
-            return dateString; // Return original string on error
+            return dateString;
         }
     }
 
@@ -137,27 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const adminLoginForm = document.getElementById('admin-login-form');
-    if (adminLoginForm) {
-        adminLoginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const password = document.getElementById('admin-password-input').value;
-            const adminError = document.getElementById('admin-error');
-            if (password === 'cg12420') {
-                sessionStorage.setItem('isAdmin', 'true');
-                sessionStorage.setItem('loggedInEmployeeId', 'cg12420');
-                window.location.hash = 'admin-dashboard';
-                adminError.textContent = '';
-                document.getElementById('admin-password-input').value = '';
-            } else {
-                adminError.textContent = 'Incorrect password.';
-            }
-        });
-    }
-
     // ===============================================
-    //  BOTTLE CREATION & PAGE LOGIC
+    //  BOTTLE PAGE LOGIC
     // ===============================================
+    
+    // This section includes all functions related to the main bottle page
+    // like creating the 3D scene, loading stickers, and handling feedback.
 
     function createWaterBottle() {
         const bottleGroup = new THREE.Group();
@@ -307,26 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
             user.stickers.forEach(sticker => {
                 const stickerEl = document.createElement('div');
                 stickerEl.className = 'sticker-item-card';
+                // Store all sticker data on the element for easy access
                 stickerEl.dataset.stickerId = sticker.id;
+                stickerEl.dataset.eventName = sticker.event_name;
+                stickerEl.dataset.eventDate = sticker.event_date;
                 stickerEl.dataset.description = sticker.description;
+                stickerEl.dataset.imageData = sticker.image_data;
 
                 stickerEl.innerHTML = `
-                    <div class="sticker-item-main">
-                        <img src="${sticker.image_data}" alt="${sticker.event_name}" class="sticker-item-img">
-                        <div class="sticker-item-info">
-                            <h4>${sticker.event_name}</h4>
-                            <p>${formatDate(sticker.event_date)}</p>
-                        </div>
-                    </div>
-                    <div class="sticker-item-details hidden">
-                        <p class="sticker-description"></p>
-                        <form class="feedback-form">
-                            <textarea name="comment" placeholder="Add your feedback for the event..." rows="4"></textarea>
-                            <div class="feedback-actions">
-                                <button type="submit">Save Feedback</button>
-                                <span class="feedback-status"></span>
-                            </div>
-                        </form>
+                    <img src="${sticker.image_data}" alt="${sticker.event_name}" class="sticker-item-img">
+                    <div class="sticker-item-info">
+                        <h4>${sticker.event_name}</h4>
+                        <p>${formatDate(sticker.event_date)}</p>
                     </div>
                 `;
                 grid.appendChild(stickerEl);
@@ -336,71 +309,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- UPDATED: Feedback Modal Logic ---
     const stickerListGrid = document.getElementById('sticker-list-grid');
     if (stickerListGrid) {
         stickerListGrid.addEventListener('click', async (e) => {
             const card = e.target.closest('.sticker-item-card');
             if (!card) return;
 
-            if (e.target.matches('button[type="submit"]')) {
-                e.preventDefault();
-                const form = e.target.closest('.feedback-form');
-                const statusEl = form.querySelector('.feedback-status');
-                const stickerId = card.dataset.stickerId;
-                const comment = form.querySelector('textarea[name="comment"]').value;
-
-                statusEl.textContent = 'Saving...';
-                
-                try {
-                    const response = await fetch('/api', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'submitFeedback',
-                            sticker_id: stickerId,
-                            employee_id: currentUser.employee_id,
-                            comment: comment
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        statusEl.textContent = 'Saved!';
-                    } else {
-                        statusEl.textContent = 'Error saving.';
-                    }
-                } catch (error) {
-                    statusEl.textContent = 'Connection error.';
-                }
-                setTimeout(() => { statusEl.textContent = ''; }, 2500);
-                return;
-            }
+            const modal = document.getElementById('user-feedback-modal');
+            const stickerId = card.dataset.stickerId;
             
-            const details = card.querySelector('.sticker-item-details');
-            const isExpanded = !details.classList.contains('hidden');
-
-            if (isExpanded) {
-                details.classList.add('hidden');
+            // Populate the modal with the sticker's data
+            document.getElementById('modal-sticker-img').src = card.dataset.imageData;
+            document.getElementById('modal-sticker-title').textContent = card.dataset.eventName;
+            document.getElementById('modal-sticker-date').textContent = formatDate(card.dataset.eventDate);
+            document.getElementById('modal-sticker-description').textContent = card.dataset.description;
+            
+            // Store sticker ID on the modal form for saving later
+            document.getElementById('user-feedback-form').dataset.stickerId = stickerId;
+            
+            // Fetch existing feedback and show it
+            const commentTextarea = document.getElementById('user-feedback-comment');
+            commentTextarea.value = 'Loading feedback...';
+            
+            const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
+            const data = await response.json();
+            if (data.success) {
+                commentTextarea.value = data.user_feedback || '';
             } else {
-                const descriptionEl = card.querySelector('.sticker-description');
-                const commentTextarea = card.querySelector('textarea[name="comment"]');
+                commentTextarea.value = 'Could not load feedback.';
+            }
+
+            // Show the modal
+            modal.classList.remove('hidden');
+        });
+    }
+
+    const feedbackModal = document.getElementById('user-feedback-modal');
+    if (feedbackModal) {
+        feedbackModal.addEventListener('click', async (e) => {
+            // Only close if the click is on the modal background itself, not the content
+            if (e.target === feedbackModal) {
+                const form = document.getElementById('user-feedback-form');
+                const stickerId = form.dataset.stickerId;
+                const comment = document.getElementById('user-feedback-comment').value;
+
+                // Auto-save the feedback
+                await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'submitFeedback',
+                        sticker_id: stickerId,
+                        employee_id: currentUser.employee_id,
+                        comment: comment
+                    })
+                });
                 
-                descriptionEl.textContent = card.dataset.description || 'No description provided for this event.';
-                commentTextarea.value = 'Loading feedback...';
-
-                const stickerId = card.dataset.stickerId;
-                const response = await fetch(`/api?action=getStickerInfo&sticker_id=${stickerId}&employee_id=${currentUser.employee_id}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    commentTextarea.value = data.user_feedback || '';
-                } else {
-                    commentTextarea.value = 'Could not load feedback.';
-                }
-
-                details.classList.remove('hidden');
+                // Hide the modal
+                feedbackModal.classList.add('hidden');
             }
         });
     }
+
 
     // ===============================================
     //  ADD STICKER PAGE LOGIC
