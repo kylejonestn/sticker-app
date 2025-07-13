@@ -147,9 +147,6 @@ app.all('/api', async (req, res) => {
     }
   }
 
-  // ===============================================
-  //  FEEDBACK ACTION
-  // ===============================================
   if (action === 'submitFeedback') {
     const { employee_id, sticker_id, comment } = params;
     if (!employee_id || !sticker_id) {
@@ -162,7 +159,6 @@ app.all('/api', async (req, res) => {
         }
         const userId = userResult.rows[0].id;
 
-        // This query will INSERT a new row, or UPDATE the existing one if the user has already left feedback for this sticker.
         const upsertQuery = `
             INSERT INTO Feedback (sticker_id, employee_id, comment)
             VALUES ($1, $2, $3)
@@ -252,6 +248,29 @@ app.all('/api', async (req, res) => {
           return res.status(500).json({ success: false, message: 'Internal Server Error' });
       }
   }
+
+  // NEW: Action to get all feedback for a specific sticker
+  if (action === 'getFeedback') {
+    const { sticker_id } = params;
+    if (!sticker_id) {
+        return res.status(400).json({ success: false, message: 'Sticker ID not provided.' });
+    }
+    try {
+        const query = `
+            SELECT f.comment, f.submitted_at, e.full_name, e.employee_id 
+            FROM Feedback f 
+            JOIN Employees e ON f.employee_id = e.id 
+            WHERE f.sticker_id = $1 
+            ORDER BY f.submitted_at DESC
+        `;
+        const result = await pool.query(query, [sticker_id]);
+        return res.status(200).json({ success: true, feedback: result.rows });
+    } catch (err) {
+        console.error('Error in getFeedback:', err);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
+
 
   // If no action matches, return an error
   if (!action) {
