@@ -1,6 +1,6 @@
 // Import required packages
 const express = require('express');
-const { Pool } =  require('pg');
+const { Pool } = require('pg');
 const cors = require('cors');
 
 // Create an Express application
@@ -34,16 +34,117 @@ app.all('/api', async (req, res) => {
   //  USER-FACING ACTIONS
   // ===============================================
   if (action === 'getUser') {
-    // ... (logic is unchanged)
+    const { employee_id } = params;
+    if (!employee_id) {
+      return res.status(400).json({ success: false, message: 'Employee ID not provided.' });
+    }
+    try {
+      const userQuery = 'SELECT * FROM Employees WHERE employee_id = $1';
+      const userResult = await pool.query(userQuery, [employee_id]);
+
+      if (userResult.rows.length === 0) {
+        return res.json({ success: false, message: 'User not found.' });
+      }
+      
+      const user = userResult.rows[0];
+      const stickersQuery = `
+        SELECT s.id, s.event_name, s.event_date, s.description, s.image_data 
+        FROM Stickers s 
+        JOIN Collection c ON s.id = c.sticker_id 
+        WHERE c.employee_record_id = $1 ORDER BY c.date_earned DESC`;
+      const stickersResult = await pool.query(stickersQuery, [user.id]);
+      user.stickers = stickersResult.rows;
+      return res.status(200).json({ success: true, user: user });
+    } catch (err) {
+      console.error('Error in getUser:', err);
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
   }
+
   if (action === 'getStickerInfo') {
-    // ... (logic is unchanged)
+    const { sticker_id } = params;
+    if (!sticker_id) {
+      return res.status(400).json({ success: false, message: 'Sticker ID not provided.' });
+    }
+    try {
+      const stickerQuery = 'SELECT * FROM Stickers WHERE id = $1';
+      const stickerResult = await pool.query(stickerQuery, [sticker_id]);
+
+      if (stickerResult.rows.length === 0) {
+        return res.json({ success: false, message: 'Sticker not found.' });
+      }
+      const response = { success: true, sticker: stickerResult.rows[0] };
+
+      if (params.employee_id) {
+        const userQuery = 'SELECT id FROM Employees WHERE employee_id = $1';
+        const userResult = await pool.query(userQuery, [params.employee_id]);
+        if (userResult.rows.length > 0) {
+          const feedbackQuery = 'SELECT comment FROM Feedback WHERE sticker_id = $1 AND employee_id = $2';
+          const feedbackResult = await pool.query(feedbackQuery, [sticker_id, userResult.rows[0].id]);
+          if (feedbackResult.rows.length > 0) {
+            response.user_feedback = feedbackResult.rows[0].comment;
+          }
+        }
+      }
+      return res.status(200).json(response);
+    } catch (err) {
+      console.error('Error in getStickerInfo:', err);
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
   }
+  
   if (action === 'addSticker') {
-    // ... (logic is unchanged)
+    const { employee_id, sticker_id } = params;
+    if (!employee_id || !sticker_id) {
+      return res.status(400).json({ success: false, message: 'Required data not provided.' });
+    }
+    try {
+      const userResult = await pool.query('SELECT id FROM Employees WHERE employee_id = $1', [employee_id]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+      const userId = userResult.rows[0].id;
+
+      const checkQuery = 'SELECT id FROM Collection WHERE employee_record_id = $1 AND sticker_id = $2';
+      const checkResult = await pool.query(checkQuery, [userId, sticker_id]);
+      if (checkResult.rows.length === 0) {
+        const insertQuery = 'INSERT INTO Collection (employee_record_id, sticker_id) VALUES ($1, $2)';
+        await pool.query(insertQuery, [userId, sticker_id]);
+      }
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      console.error('Error in addSticker:', err);
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
   }
+
   if (action === 'registerAndAddSticker') {
-    // ... (logic is unchanged)
+    const { employee_id, full_name, sticker_id } = params;
+    if (!employee_id || !full_name || !sticker_id) {
+      return res.status(400).json({ success: false, message: 'Missing data for registration.' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const registerQuery = 'INSERT INTO Employees (employee_id, full_name) VALUES ($1, $2) RETURNING id';
+      const registerResult = await client.query(registerQuery, [employee_id, full_name]);
+      const newUserId = registerResult.rows[0].id;
+      
+      const addStickerQuery = 'INSERT INTO Collection (employee_record_id, sticker_id) VALUES ($1, $2)';
+      await client.query(addStickerQuery, [newUserId, sticker_id]);
+      
+      await client.query('COMMIT');
+      return res.status(201).json({ success: true });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('Error in registerAndAddSticker:', err);
+      if (err.code === '23505') {
+        return res.status(409).json({ success: false, message: 'This Employee ID might already be taken.' });
+      }
+      return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    } finally {
+      client.release();
+    }
   }
 
   // ===============================================
@@ -114,7 +215,6 @@ app.all('/api', async (req, res) => {
           return res.status(400).json({ success: false, message: 'Sticker ID not provided.' });
       }
       try {
-          // Note: In a real-world app, you might want to also delete related collection and feedback entries.
           await pool.query('DELETE FROM Stickers WHERE id = $1', [sticker_id]);
           return res.status(200).json({ success: true });
       } catch (err) {
@@ -123,10 +223,7 @@ app.all('/api', async (req, res) => {
       }
   }
 
-
   // If no action matches, return an error
-  // Note: This part of the code might not be reached if an action is always provided.
-  // It's good practice to have a fallback.
   if (!action) {
     return res.status(400).json({ success: false, message: 'No action specified.' });
   }
