@@ -160,73 +160,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return bottleGroup;
     }
 
-    function init3DScene(user) {
-        const container = document.getElementById('bottle-viewer-container');
-        const canvas = document.getElementById('bottle-canvas');
-        if (!container || !canvas) return;
-
-        if (renderer) {
-            renderer.dispose();
-            const oldCanvas = container.querySelector('canvas');
-            if(oldCanvas && oldCanvas !== canvas) oldCanvas.remove();
-        }
-
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xd8dde1);
-        camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(0, 0, 7);
-
-        renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.minDistance = 3;
-        controls.maxDistance = 10;
-        controls.enablePan = false;
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        directionalLight.position.set(5, 10, 7.5);
-        scene.add(directionalLight);
-
-        const bottle = createWaterBottle();
-        scene.add(bottle);
-
-        if (window.TWEEN) {
-            new TWEEN.Tween(bottle.rotation)
-                .to({ y: bottle.rotation.y + Math.PI * 2 }, 1500)
-                .easing(TWEEN.Easing.Quintic.Out)
-                .start();
-        }
-
-        if (user && user.stickers && user.stickers.length > 0) {
-            if (typeof THREE.DecalGeometry === 'undefined') {
-                console.error("DecalGeometry not loaded. Make sure to include it in index.html.");
-                return;
-            }
-            
-            const textureLoader = new THREE.TextureLoader();
-            const decalSize = new THREE.Vector3(1.2, 1.2, 1.2);
+    // Solution 1: Adjusting position, size, and material
+            const decalSize = new THREE.Vector3(1.1, 1.1, 1.1); // Slightly smaller
 
             const decalPositions = [
-                { pos: new THREE.Vector3(0, 1.0, 0.85) }, { pos: new THREE.Vector3(0.85, 0.2, 0) },
-                { pos: new THREE.Vector3(0, -0.5, -0.85) }, { pos: new THREE.Vector3(-0.85, -0.9, 0) },
-                { pos: new THREE.Vector3(0.65, 0.6, 0.65) }, { pos: new THREE.Vector3(-0.65, -0.2, -0.65) },
-                { pos: new THREE.Vector3(0.75, -0.8, 0.45) }, { pos: new THREE.Vector3(-0.75, 0.8, -0.45) },
+                { pos: new THREE.Vector3(0, 0.9, 0.85) },    // Pulled down from 1.0
+                { pos: new THREE.Vector3(0.85, 0.2, 0) },
+                { pos: new THREE.Vector3(0, -0.5, -0.85) },
+                { pos: new THREE.Vector3(-0.85, -0.9, 0) },
+                { pos: new THREE.Vector3(0.65, 0.5, 0.65) }, // Centered y-position
+                { pos: new THREE.Vector3(-0.65, -0.2, -0.65) },
+                { pos: new THREE.Vector3(0.75, -0.8, 0.45) },
+                { pos: new THREE.Vector3(-0.75, 0.7, -0.45) } // Pulled down from 0.8
             ];
 
             user.stickers.slice(0, decalPositions.length).forEach((sticker, index) => {
                 textureLoader.load(sticker.image_data, (texture) => {
                     const decalMaterial = new THREE.MeshStandardMaterial({
-                        map: texture, transparent: true, depthTest: true,
-                        depthWrite: false, polygonOffset: true, polygonOffsetFactor: -5,
-                        alphaTest: 0.5, roughness: 0.4, metalness: 0.1
+                        map: texture,
+                        transparent: true,
+                        depthTest: true, // Ensures decals don't render through the bottle
+                        depthWrite: false,
+                        polygonOffset: true,
+                        polygonOffsetFactor: -10, // Increased to strongly prevent z-fighting
+                        alphaTest: 0.5,
+                        roughness: 0.4,
+                        metalness: 0.1
                     });
                     
                     const decalInfo = decalPositions[index];
+                    // This 'lookAt' logic correctly orients the sticker to prevent it from being backward
                     const rotationMatrix = new THREE.Matrix4();
                     rotationMatrix.lookAt(decalInfo.pos, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
                     const decalRotation = new THREE.Euler().setFromRotationMatrix(rotationMatrix);
@@ -238,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     bottleMesh.add(decal);
                 });
             });
-        }
 
         function animate() {
             requestAnimationFrame(animate);
