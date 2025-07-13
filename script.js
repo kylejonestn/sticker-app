@@ -69,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pageName === 'bottle' && !currentUser) {
             window.location.hash = '#login';
-            // If we are redirected to login, we need to re-run navigate to show the login page
             if (pageName !== 'login') {
                 navigate();
             }
@@ -104,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const employeeId = document.getElementById('login-employee-id').value.trim();
+            const employeeId = document.getElementById('login-employee-id').value.trim().toLowerCase();
             const loginError = document.getElementById('login-error');
             loginError.textContent = '';
             if (!employeeId) return;
@@ -128,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         sessionStorage.setItem('isAdmin', 'true');
                     }
                     window.location.hash = '#bottle';
-                    // UPDATED: Manually call navigate() to force the page update.
                     navigate();
                 } else {
                     loginError.textContent = data.message || 'User not found.';
@@ -267,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(existingGear) existingGear.remove();
 
         if (user.employee_id === 'cg12420') {
-            const viewerContainer = bottlePage.querySelector('#bottle-viewer-container');
+            const viewerContainer = document.getElementById('bottle-viewer-container');
             if (viewerContainer) {
                 const gearLink = document.createElement('a');
                 gearLink.href = '#admin-dashboard';
@@ -419,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         idForm.onsubmit = async (event) => { 
             event.preventDefault(); 
             const idInput = document.getElementById('employee-id-input'); 
-            const employeeId = idInput.value.trim(); 
+            const employeeId = idInput.value.trim().toLowerCase(); 
             const idError = document.getElementById('id-error'); 
             idError.textContent = ''; 
             if (!employeeId) return; 
@@ -442,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerForm = document.getElementById('register-form');
         registerForm.onsubmit = async (event) => { 
             event.preventDefault(); 
-            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            const employeeId = document.getElementById('employee-id-input').value.trim().toLowerCase(); 
             const fullNameInput = document.getElementById('full-name-input'); 
             const fullName = fullNameInput.value.trim(); 
             const registerError = document.getElementById('register-error'); 
@@ -468,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const confirmYesButton = document.getElementById('confirm-yes-button');
         confirmYesButton.onclick = async () => { 
-            const employeeId = document.getElementById('employee-id-input').value.trim(); 
+            const employeeId = document.getElementById('employee-id-input').value.trim().toLowerCase(); 
             
             const response = await fetch('/api', { 
                 method: 'POST',
