@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const loggedInEmployeeId = sessionStorage.getItem('loggedInEmployeeId');
         if (loggedInEmployeeId) {
             try {
-                // UPDATED: Sending JSON instead of FormData
                 const response = await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -95,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!employeeId) return;
 
             try {
-                // UPDATED: Sending JSON instead of FormData
                 const response = await fetch('/api', {
                     method: 'POST',
                     headers: {
@@ -518,9 +516,241 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // ===============================================
+    //  ADMIN DASHBOARD LOGIC
+    // ===============================================
     async function initAdminDashboard() {
-        // This function will need to be updated to send JSON as well
-        // We can tackle this in the next phase
+        // Attach event listeners only once
+        const createStickerForm = document.getElementById('create-sticker-form');
+        if (createStickerForm && !createStickerForm._isInitialized) { 
+            createStickerForm._isInitialized = true; 
+            createStickerForm.addEventListener('submit', handleCreateStickerSubmit); 
+        }
+        const stickerCardList = document.getElementById('sticker-card-list');
+        if (stickerCardList && !stickerCardList._isInitialized) { 
+            stickerCardList._isInitialized = true; 
+            stickerCardList.addEventListener('click', handleCardActions); 
+        }
+        const shareModal = document.getElementById('share-modal');
+        if (shareModal && !shareModal._isInitialized) { 
+            shareModal._isInitialized = true; 
+            const copyBtn = document.getElementById('copy-link-btn'); 
+            const closeBtn = document.getElementById('close-share-modal-btn'); 
+            const urlInput = document.getElementById('share-url-input'); 
+            copyBtn.addEventListener('click', () => { 
+                urlInput.select(); 
+                document.execCommand('copy'); 
+                const icon = copyBtn.querySelector('.material-icons'); 
+                icon.textContent = 'done'; 
+                setTimeout(() => { icon.textContent = 'content_copy'; }, 2000); 
+            }); 
+            closeBtn.addEventListener('click', () => { shareModal.classList.add('hidden'); }); 
+        }
+        const feedbackModal = document.getElementById('feedback-modal');
+        if (feedbackModal && !feedbackModal._isInitialized) { 
+            feedbackModal._isInitialized = true; 
+            const closeBtn = document.getElementById('close-feedback-modal-btn'); 
+            closeBtn.addEventListener('click', () => { feedbackModal.classList.add('hidden'); }); 
+        }
+        
+        await loadAdminStickers();
+    }
+
+    async function handleCreateStickerSubmit(e) {
+        e.preventDefault();
+        const eventName = document.getElementById('event-name').value;
+        const eventDate = document.getElementById('event-date').value;
+        const description = document.getElementById('description').value;
+        const fileInput = document.getElementById('sticker-image-upload');
+        const file = fileInput.files[0];
+        
+        if (!eventName || !eventDate || !file) {
+            alert('Please fill out Event Name, Event Date, and select an image.');
+            return;
+        }
+        
+        const createStickerBtn = document.getElementById('create-sticker-btn');
+        createStickerBtn.disabled = true;
+        createStickerBtn.textContent = 'Creating...';
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const imageData = reader.result;
+            if (imageData.length > 2 * 1024 * 1024) { // 2MB limit
+                alert('Image is too large (max 2MB).');
+                createStickerBtn.disabled = false;
+                createStickerBtn.textContent = 'Create Sticker';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'createSticker',
+                        event_name: eventName,
+                        event_date: eventDate,
+                        description: description,
+                        sticker_image_data: imageData
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Sticker created successfully!');
+                    e.target.reset();
+                    await loadAdminStickers();
+                } else {
+                    alert('Error creating sticker: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert("A server error occurred while creating the sticker.");
+            } finally {
+                createStickerBtn.disabled = false;
+                createStickerBtn.textContent = 'Create Sticker';
+            }
+        };
+        reader.onerror = () => {
+             alert('Error reading the selected file.');
+             createStickerBtn.disabled = false;
+             createStickerBtn.textContent = 'Create Sticker';
+        };
+    }
+
+    async function handleCardActions(e) {
+        const button = e.target.closest('button.icon-btn');
+        if (!button) return;
+
+        const card = button.closest('.sticker-card');
+        const id = card.dataset.stickerId;
+        
+        if (button.classList.contains('delete-btn')) {
+            if (confirm('Are you sure you want to permanently delete this sticker?')) {
+                await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'deleteSticker', sticker_id: id })
+                });
+                await loadAdminStickers();
+            }
+        } else if (button.classList.contains('edit-btn')) {
+            card.classList.add('editing');
+            const title = card.querySelector('.sticker-card-title');
+            const date = card.querySelector('.sticker-card-date');
+            const description = card.querySelector('.sticker-card-body p');
+            
+            title.innerHTML = `<input type="text" class="form-group" value="${title.dataset.originalValue}">`;
+            date.innerHTML = `<input type="date" class="form-group" value="${date.dataset.originalValue}">`;
+            description.innerHTML = `<textarea rows="3" class="form-group">${description.dataset.originalValue}</textarea>`;
+
+            button.innerHTML = '<span class="material-icons">save</span>';
+            button.title = 'Save Changes';
+            button.classList.remove('edit-btn');
+            button.classList.add('save-btn');
+        } else if (button.classList.contains('save-btn')) {
+            await fetch('/api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'updateStickerDetails',
+                    sticker_id: id,
+                    event_name: card.querySelector('.sticker-card-title input').value,
+                    event_date: card.querySelector('.sticker-card-date input').value,
+                    description: card.querySelector('.sticker-card-body textarea').value
+                })
+            });
+            await loadAdminStickers();
+        } else if (button.classList.contains('share-btn')) {
+            const modal = document.getElementById('share-modal');
+            const urlInput = document.getElementById('share-url-input');
+            const qrCanvas = document.getElementById('qr-code-canvas');
+            const url = `${window.location.origin}${window.location.pathname}#add-sticker?id=${id}`;
+            urlInput.value = url;
+            new QRious({ element: qrCanvas, value: url, size: 220, padding: 10, foreground: '#333' });
+            modal.classList.remove('hidden');
+        } else if (button.classList.contains('feedback-btn')) {
+            const modal = document.getElementById('feedback-modal');
+            const title = document.getElementById('feedback-modal-title');
+            const container = document.getElementById('feedback-list-container');
+            const cardTitle = card.querySelector('.sticker-card-title').textContent;
+            title.textContent = `Feedback for "${cardTitle}"`;
+            container.innerHTML = '<p>Loading...</p>';
+            modal.classList.remove('hidden');
+            try {
+                const response = await fetch(`/api?action=getFeedback&sticker_id=${id}`);
+                const data = await response.json();
+                if (data.success && data.feedback.length > 0) {
+                    container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join('');
+                } else {
+                    container.innerHTML = '<p>No feedback submitted yet.</p>';
+                }
+            } catch (error) {
+                container.innerHTML = '<p>Could not load feedback.</p>';
+            }
+        }
+    }
+
+    async function loadAdminStickers() {
+        const stickerCardList = document.getElementById('sticker-card-list');
+        if (!stickerCardList) return;
+        stickerCardList.innerHTML = '<p>Loading stickers...</p>';
+        
+        try {
+            const response = await fetch('/api?action=getAllStickers');
+            const data = await response.json();
+
+            if (data.success && data.stickers) {
+                stickerCardList.innerHTML = '';
+                if (data.stickers.length === 0) {
+                     stickerCardList.innerHTML = '<p>No stickers have been created yet.</p>';
+                     return;
+                }
+                data.stickers.forEach(sticker => {
+                    const card = document.createElement('div');
+                    card.className = 'sticker-card';
+                    card.dataset.stickerId = sticker.id;
+                    
+                    const eventName = sticker.event_name || '';
+                    const eventDate = sticker.event_date || '';
+                    const description = sticker.description || '';
+                    const feedbackCount = sticker.feedback_count || 0;
+                    
+                    card.innerHTML = `
+                        <div class="sticker-card-header">
+                            <img src="${sticker.image_data}" alt="${eventName}" class="sticker-card-img">
+                            <div class="sticker-card-title-block">
+                                <h3 class="sticker-card-title" data-original-value="${eventName}">${eventName}</h3>
+                                <p class="sticker-card-date" data-original-value="${eventDate}">${formatDate(eventDate)}</p>
+                            </div>
+                        </div>
+                        <div class="sticker-card-body">
+                            <p data-original-value="${description}">${description}</p>
+                        </div>
+                        <div class="sticker-card-stats">
+                            <div class="stat-item">
+                                <span class="material-icons" style="font-size: 20px;">groups</span>
+                                <span>${sticker.collection_count || 0} Collected</span>
+                            </div>
+                        </div>
+                        <div class="sticker-card-actions">
+                            <button class="icon-btn share-btn" title="Share"><span class="material-icons">share</span></button>
+                            <button class="icon-btn edit-btn" title="Edit"><span class="material-icons">edit</span></button>
+                            <button class="icon-btn feedback-btn" title="View Feedback">
+                                <span class="material-icons">chat_bubble_outline</span>
+                                ${feedbackCount > 0 ? `<span class="badge">${feedbackCount}</span>` : ''}
+                            </button>
+                            <button class="icon-btn delete-btn" title="Delete"><span class="material-icons">delete</span></button>
+                        </div>
+                    `;
+                    stickerCardList.appendChild(card);
+                });
+            } else {
+                stickerCardList.innerHTML = `<p>Failed to load stickers: ${data.message || 'No stickers found.'}</p>`;
+            }
+        } catch (error) {
+            stickerCardList.innerHTML = '<p>A server error occurred. Could not load stickers.</p>';
+        }
     }
 
     initApp();
