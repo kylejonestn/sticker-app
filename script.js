@@ -137,9 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     //  BOTTLE PAGE LOGIC
     // ===============================================
     
-    // This section includes all functions related to the main bottle page
-    // like creating the 3D scene, loading stickers, and handling feedback.
-
     function createWaterBottle() {
         const bottleGroup = new THREE.Group();
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00BFFF, roughness: 0.2, metalness: 0.1 });
@@ -288,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
             user.stickers.forEach(sticker => {
                 const stickerEl = document.createElement('div');
                 stickerEl.className = 'sticker-item-card';
-                // Store all sticker data on the element for easy access
                 stickerEl.dataset.stickerId = sticker.id;
                 stickerEl.dataset.eventName = sticker.event_name;
                 stickerEl.dataset.eventDate = sticker.event_date;
@@ -309,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- UPDATED: Feedback Modal Logic ---
     const stickerListGrid = document.getElementById('sticker-list-grid');
     if (stickerListGrid) {
         stickerListGrid.addEventListener('click', async (e) => {
@@ -319,16 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const modal = document.getElementById('user-feedback-modal');
             const stickerId = card.dataset.stickerId;
             
-            // Populate the modal with the sticker's data
             document.getElementById('modal-sticker-img').src = card.dataset.imageData;
             document.getElementById('modal-sticker-title').textContent = card.dataset.eventName;
             document.getElementById('modal-sticker-date').textContent = formatDate(card.dataset.eventDate);
             document.getElementById('modal-sticker-description').textContent = card.dataset.description;
             
-            // Store sticker ID on the modal form for saving later
             document.getElementById('user-feedback-form').dataset.stickerId = stickerId;
             
-            // Fetch existing feedback and show it
             const commentTextarea = document.getElementById('user-feedback-comment');
             commentTextarea.value = 'Loading feedback...';
             
@@ -340,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 commentTextarea.value = 'Could not load feedback.';
             }
 
-            // Show the modal
             modal.classList.remove('hidden');
         });
     }
@@ -348,13 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedbackModal = document.getElementById('user-feedback-modal');
     if (feedbackModal) {
         feedbackModal.addEventListener('click', async (e) => {
-            // Only close if the click is on the modal background itself, not the content
             if (e.target === feedbackModal) {
                 const form = document.getElementById('user-feedback-form');
                 const stickerId = form.dataset.stickerId;
                 const comment = document.getElementById('user-feedback-comment').value;
 
-                // Auto-save the feedback
                 await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -366,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
                 
-                // Hide the modal
                 feedbackModal.classList.add('hidden');
             }
         });
@@ -507,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
     //  ADMIN DASHBOARD LOGIC
     // ===============================================
     async function initAdminDashboard() {
-        // Attach event listeners only once
         const createStickerForm = document.getElementById('create-sticker-form');
         if (createStickerForm && !createStickerForm._isInitialized) { 
             createStickerForm._isInitialized = true; 
@@ -668,12 +655,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`/api?action=getFeedback&sticker_id=${id}`);
                 const data = await response.json();
                 if (data.success && data.feedback.length > 0) {
-                    container.innerHTML = data.feedback.map(fb => ` <div class="feedback-item"><p class="feedback-comment">${fb.comment}</p><p class="feedback-meta"><strong>${fb.full_name}</strong> (${fb.employee_id}) - <small>${new Date(fb.submitted_at).toLocaleString()}</small></p></div> `).join('');
+                    container.innerHTML = data.feedback.map(fb => `
+                        <div class="feedback-item">
+                            <p class="feedback-comment">"${fb.comment}"</p>
+                            <p class="feedback-meta">
+                                <strong>${fb.full_name}</strong> (${fb.employee_id}) - 
+                                <small>${new Date(fb.submitted_at).toLocaleString()}</small>
+                            </p>
+                        </div>
+                    `).join('');
                 } else {
-                    container.innerHTML = '<p>No feedback submitted yet.</p>';
+                    container.innerHTML = '<p>No feedback has been submitted for this event yet.</p>';
                 }
             } catch (error) {
-                container.innerHTML = '<p>Could not load feedback.</p>';
+                container.innerHTML = '<p>Could not load feedback due to a server error.</p>';
             }
         }
     }
