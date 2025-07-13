@@ -141,12 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
     //  BOTTLE PAGE LOGIC
     // ===============================================
     
+    // UPDATED: This function now creates a higher-resolution bottle
     function createWaterBottle() {
         const bottleGroup = new THREE.Group();
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00BFFF, roughness: 0.2, metalness: 0.1 });
         const lidMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
         
-        const bodyGeo = new THREE.CylinderGeometry(0.8, 0.7, 3, 32);
+        // Increased radial segments from 32 to 64 for a smoother surface
+        const bodyGeo = new THREE.CylinderGeometry(0.8, 0.7, 3, 64);
         bottleMesh = new THREE.Mesh(bodyGeo, bodyMat);
         bottleMesh.name = 'bottleBody';
         bottleGroup.add(bottleMesh);
@@ -209,19 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const textureLoader = new THREE.TextureLoader();
-            
-            // UPDATED: Adjusted size and positions for better rendering
-            const decalSize = new THREE.Vector3(1.1, 1.1, 1.1); // Slightly smaller decals
+            const decalSize = new THREE.Vector3(1.1, 1.1, 1.1); 
 
             const decalPositions = [
-                { pos: new THREE.Vector3(0, 0.9, 0.85) },    // Pulled down from top edge
+                { pos: new THREE.Vector3(0, 0.9, 0.85) },
                 { pos: new THREE.Vector3(0.85, 0.2, 0) },
                 { pos: new THREE.Vector3(0, -0.5, -0.85) },
-                { pos: new THREE.Vector3(-0.85, -0.9, 0) },  // Pulled up from bottom edge
-                { pos: new THREE.Vector3(0.65, 0.5, 0.65) }, // Centered Y-position
+                { pos: new THREE.Vector3(-0.85, -0.9, 0) },
+                { pos: new THREE.Vector3(0.65, 0.5, 0.65) },
                 { pos: new THREE.Vector3(-0.65, -0.2, -0.65) },
                 { pos: new THREE.Vector3(0.75, -0.8, 0.45) },
-                { pos: new THREE.Vector3(-0.75, 0.7, -0.45) } // Pulled down from top edge
+                { pos: new THREE.Vector3(-0.75, 0.7, -0.45) }
             ];
 
             user.stickers.slice(0, decalPositions.length).forEach((sticker, index) => {
@@ -229,17 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const decalMaterial = new THREE.MeshStandardMaterial({
                         map: texture,
                         transparent: true,
-                        depthTest: true, // Ensures decals don't render through the bottle
+                        depthTest: true,
                         depthWrite: false,
                         polygonOffset: true,
-                        polygonOffsetFactor: -10, // Increased to strongly prevent z-fighting
+                        polygonOffsetFactor: -10,
                         alphaTest: 0.5,
                         roughness: 0.4,
                         metalness: 0.1
                     });
                     
                     const decalInfo = decalPositions[index];
-                    // This 'lookAt' logic correctly orients the sticker to prevent it from being backward
                     const rotationMatrix = new THREE.Matrix4();
                     rotationMatrix.lookAt(decalInfo.pos, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
                     const decalRotation = new THREE.Euler().setFromRotationMatrix(rotationMatrix);
